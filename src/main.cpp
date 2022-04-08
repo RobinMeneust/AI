@@ -10,7 +10,6 @@ int main()
 {
     int sizesArray[3]={400, 10, 10};
     NeuralNetwork network(3, sizesArray);
-    std::cout <<  "TEST " << network.m_neuronLayersList[0].m_neurons[0] << std::endl;
     Mat image;
 
     image = imread("E:\\Prog\\C++ IA\\3.png");
@@ -33,7 +32,18 @@ int main()
         //std::cout << std::endl;
     }
     network.sendInput(intensityArray);
-    
+
+    FILE* logFile = fopen("log.txt", "w");
+    for(int i=0; i<network.m_sizesOfLayers[0]; i++){
+        fprintf(logFile, "N:%f B:%f\n", network.m_neuronLayersList[0]->m_neurons[i], network.m_neuronLayersList[0]->m_bias[i]);
+    }
+    fclose(logFile);
+    /*
+    std::cout <<  "TEST neuron " << network.m_neuronLayersList[0]->m_neurons[0] << std::endl;
+    std::cout <<  "TEST bias " << network.m_neuronLayersList[0]->m_bias[0] << std::endl;
+    std::cout <<  "TEST weight " << network.m_neuronLayersList[0]->m_weight[0][0] << std::endl;
+    std::cout <<  "TEST size " << network.m_neuronLayersList[0]->m_size << std::endl;
+    */
     system("pause");//pause the system to visualize the result//
    
     return 0;

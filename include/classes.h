@@ -3,6 +3,7 @@ class NeuronLayer
     public:
 
     NeuronLayer(int size);
+    NeuronLayer(NeuronLayer const& copy);
     NeuronLayer();
     ~NeuronLayer();
 
@@ -21,8 +22,9 @@ class NeuralNetwork
     ~NeuralNetwork();
     void sendInput(float inputArray[20][20]);
     void refreshAllLayers();
+    void getResult();
 
     int m_nbLayers;
     int* m_sizesOfLayers;
-    NeuronLayer* m_neuronLayersList;
+    NeuronLayer** m_neuronLayersList;
 };
