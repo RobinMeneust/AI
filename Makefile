@@ -1,41 +1,75 @@
+# Directories
+srcdir = ./src/
+bindir = ./bin/
+docdir = ./doc/
+savedir = ./save/
+
+# Compilation variables
+DATE = $(shell date +'%Y_%m_%d_%Hh%M')
+AUTHOR = meneust_robin
+CC = g++ -Wall
+CP = cp -r
+RM = rm -rf
+PROG = AI
+SRC = $(wildcard $(srcdir)*.cpp)
+OBJ = $(subst $(srcdir), $(bindir), $(SRC:.cpp=.o))
 HEAD = $(wildcard ./include/*.h)
-SRC = $(wildcard src/*.cpp)
-OBJ = $(patsubst src/%.cpp, obj/%.o, $(SRC))
-CC = g++
-PROG=./bin/IA
-LINKSFLAGSOLD=-I"E:\install\opencv\OpenCV-MinGW-Build-OpenCV-4.5.2-x64\include" -L"E:\install\opencv\OpenCV-MinGW-Build-OpenCV-4.5.2-x64\x64\mingw\bin" -L"E:\install\opencv\OpenCV-MinGW-Build-OpenCV-4.5.2-x64\x64\mingw\lib" -llibopencv_calib3d452 -llibopencv_core452 -llibopencv_dnn452 -llibopencv_features2d452 -llibopencv_flann452 -llibopencv_highgui452 -llibopencv_imgcodecs452 -llibopencv_imgproc452 -llibopencv_ml452 -llibopencv_objdetect452 -llibopencv_photo452 -llibopencv_stitching452 -llibopencv_video452 -llibopencv_videoio452
-LINKSFLAGS=-I E:\install\opencv\OpenCV-MinGW-Build-OpenCV-4.5.2-x64\include -L E:\install\opencv\OpenCV-MinGW-Build-OpenCV-4.5.2-x64\x64\mingw\bin -L E:\install\opencv\OpenCV-MinGW-Build-OpenCV-4.5.2-x64\x64\mingw\lib -lopencv_core452 -lopencv_highgui452
+LDLIBS = -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs
 
-all: $(PROG) 
 
-$(PROG) : $(OBJ)
-	$(CC) $(LINKSFLAGSOLD) $^ -o $@ 
+all : $(bindir)$(PROG)
 
-#obj/%.o: src/%.cpp $(HEAD)
-#	$(CC) $(LINKSFLAGS) -c $< -o $@ 
+$(bindir)$(PROG) : $(OBJ)
+	$(CC) $(OBJ) -o $(bindir)$(PROG) $(LDLIBS)
 
-obj/main.o: src/main.cpp $(HEAD)
-	$(CC) -I"E:\install\opencv\OpenCV-MinGW-Build-OpenCV-4.5.2-x64\include" -c $< -o $@ 
+$(bindir)%.o : $(srcdir)%.cpp $(HEAD)
+	$(CC) -c $< -o $@
 
-obj/classes.o: src/classes.cpp $(HEAD)
-	$(CC) -c $< -o $@ 
+# Remove temporary files
+clean : cleanConfirm
+	$(RM) *\*~ *.bak *.old \#*\# $(bindir)*.o 
 	
-.PHONY : cleanlinux cleanwin doc run
 
-cleanlinux:
-	rm obj/*.o
+# Generate the doxygen documentation
+doc: createDoxyfile
+	doxygen $(docdir)Doxyfile
+	
+		
+.PHONY: cleanConfirm cleanDoc save saveByDate createDoxyfile restore give run
 
-cleanwin:
-	del obj\*.o
 
-cleandoclinux:
-	del doxygen\html
+# Ask for confirmation to delete temporary files
+cleanConfirm :
+	@ echo "Do you want to execute : \"$(RM) $(bindir)*.o *.\*~ *.bak *.old \#*\# \" ? (y/n)" && read answer && [ $${answer} = "y" ]
+	
+# Remove all files in $(docdir)
+cleanDoc :
+	$(RM) $(docdir)*
 
-cleandocwin:
-	del doxygen\html
+# Create a backup for this project
+save:
+	$(CP) $(srcdir). $(savedir)backup/
 
-doc:
-	doxygen doxygen/Doxyfile
+# Create a backup for this project with the current date in its name
+saveByDate:
+	mkdir "$(savedir)/backup_$(DATE)/"
+	cp -r $(srcdir). "$(savedir)/backup_$(DATE)/"
+	
+createDoxyfile:
+	if [ ! -d $(docdir) ]; then mkdir $(docdir); fi; if [ ! -f $(docdir)Doxyfile ]; then doxygen -g $(docdir)Doxyfile && sed -i 's@^OUTPUT_DIRECTORY.*=$$@OUTPUT_DIRECTORY = $(docdir)@' $(docdir)Doxyfile && sed -i 's@^RECURSIVE.*= NO$$@RECURSIVE = YES@' $(docdir)Doxyfile; fi;
 
+# Restore the backup in save/backup
+restore:
+	cp -ir $(savedir)backup/. $(srcdir)
+
+# Generate the archive containing this project
+give:
+	mkdir "meneust_robin_$(PROG)"
+	mkdir "meneust_robin_$(PROG)/bin" "meneust_robin_$(PROG)/save"
+	cp -rt "meneust_robin_$(PROG)" ./Makefile $(docdir) $(srcdir)
+	zip -r meneust_robin_$(PROG).zip meneust_robin_$(PROG)
+	rm -r "meneust_robin_$(PROG)"
+
+# Run the executable without any arguments
 run:
-	$(PROG)
+	${bindir}${PROG}
