@@ -24,6 +24,7 @@ using namespace cv;
 
 int main()
 {
+	
 	int sizesArray[3]={400, 10, 10}; // Sizes of each neuron layers (number of neurons)
 	int expectedResult = 3; // Expected value the tested value. In this version it's "3" since the image tested represents 3
 	NeuralNetwork network(3, sizesArray); // Neural network with 3 layers
@@ -34,13 +35,13 @@ int main()
 	int b = 0; // Intensity of the color green in the current pixel
 	int intensity = 0; // Mean intensity of the 3 colors of the current pixel
 
+
 	// Read the image to be analyzed
 	image = imread("./samples/3/sample3_1.png");
 	if (!image.data){
 		std::cerr << "ERROR: No image data" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-
 	for(int x=0; x<20; x++){
 		for(int y=0; y<20; y++){
 			// getting the pixel values
@@ -55,10 +56,12 @@ int main()
 	}
 	network.sendInput(intensityArray, expectedResult);
 	/*
-	std::cout <<  "TEST neuron " << network.m_neuronLayersList[0]->m_neurons[0] << std::endl;
-	std::cout <<  "TEST bias " << network.m_neuronLayersList[0]->m_bias[0] << std::endl;
-	std::cout <<  "TEST weight " << network.m_neuronLayersList[0]->m_weight[0][0] << std::endl;
-	std::cout <<  "TEST size " << network.m_neuronLayersList[0]->m_size << std::endl;
+	std::cout <<  "TEST neuron " << network.m_neuronLayersList[1]->m_neurons[0] << std::endl;
+	std::cout <<  "TEST bias " << network.m_neuronLayersList[1]->m_bias[0] << std::endl;
+	std::cout <<  "TEST weight " << network.m_neuronLayersList[1]->m_weight[0][0] << std::endl;
+	std::cout <<  "TEST size " << network.m_neuronLayersList[1]->m_size << std::endl;
 	*/
+	network.saveNetwork("log.txt");
+
 	return 0;
 }

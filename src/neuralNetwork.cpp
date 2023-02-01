@@ -1,7 +1,7 @@
 /**
- * @file classes.cpp
+ * @file neuralNetwork.cpp
  * @author Robin MENEUST
- * @brief Functions used to manipulate neuron layers
+ * @brief Functions used to manipulate neural networks
  * @date 2022-12-14
  */
 
@@ -10,100 +10,13 @@
 #include <math.h>
 
 /**
- * @brief Construct a new Neuron Layer:: Neuron Layer object with default values if no parameters are given
- * 
- */
-
-NeuronLayer::NeuronLayer() : m_size(0), m_neurons(0), m_weight(0), m_bias(0)
-{
-}
-
-/**
- * @brief Construct a new Neuron Layer:: Neuron Layer object with given parameters
- * 
- * @param size Size of the layer to be created. Number of neurons
- * @param prevLayerSize Size of the previous layer that will send data to this layer
- */
-
-NeuronLayer::NeuronLayer(int size, int prevLayerSize) : m_size(size), m_prevLayerSize(prevLayerSize), m_neurons(0), m_weight(0), m_bias(0)
-{
-	srand(time(NULL));
-	m_neurons = new float[m_size];
-	for(int i=0; i<m_size; i++){
-		m_neurons[i] = 0.0f;
-	}
-
-	// Allocate memory and initialize neuron layer with random values for bias and weight
-
-	m_bias = new float[m_size];
-	for(int i=0; i<m_size; i++){
-		m_bias[i] = (float) (rand() % 11) / 10.0f;
-	}
-
-	if(m_prevLayerSize != -1){ // if it's not the 1st layer
-		m_weight = new float*[m_size];
-		for(int i=0; i<m_size; i++){
-			m_weight[i] = new float[m_prevLayerSize];
-			for(int j=0; j<m_prevLayerSize; j++)
-				m_weight[i][j] = (float) (rand() % 11) / 10.0f;
-		}
-	}
-}
-
-/**
- * @brief Construct a new Neuron Layer:: Neuron Layer object by copying the given neuron layer
- * 
- * @param copy Neuron layer to be copied
- */
-
-NeuronLayer::NeuronLayer(NeuronLayer const& copy) : m_size(copy.m_size), m_prevLayerSize(copy.m_prevLayerSize), m_neurons(0), m_weight(0), m_bias(0) 
-{
-	m_neurons = new float[m_size];
-	for(int i=0; i<m_size; i++){
-		m_neurons[i]=copy.m_neurons[i];
-	}
-
-	m_bias=new float[m_size];
-	for(int i=0; i<m_size; i++){
-		m_bias[i]=copy.m_bias[i];
-	}
-	if(m_prevLayerSize != -1){ // if it's not the 1st layer
-		m_weight=new float*[m_size];
-		for(int i=0; i<m_size; i++){
-			m_weight[i]=new float[m_prevLayerSize];
-			for(int j=0; j<m_prevLayerSize; j++)
-				m_weight[i][j]=copy.m_weight[i][j];
-		}
-	}
-}
-
-/**
- * @brief Destroy the Neuron Layer:: Neuron Layer object
- * 
- */
-
-NeuronLayer::~NeuronLayer()
-{
-	delete [] m_neurons;
-
-	delete [] m_bias;
-
-	// If it's not the 1st layer
-	if(m_prevLayerSize != -1){ 
-		for(int i=0; i<m_size; i++)
-			delete [] m_weight[i];
-		delete [] m_weight;  
-	}
-}
-
-/**
  * @brief Construct a new Neural Network:: Neural Network object with the given parameters
  * 
  * @param numberOfLayers Number of layers in this network
  * @param sizesOfLayers Array containing the size of each layers
  */
 
-NeuralNetwork::NeuralNetwork(int numberOfLayers, int sizesOfLayers[]) : m_nbLayers(numberOfLayers), m_neuronLayersList(0), m_sizesOfLayers(0)
+NeuralNetwork::NeuralNetwork(int numberOfLayers, int sizesOfLayers[]) : m_nbLayers(numberOfLayers), m_sizesOfLayers(0), m_neuronLayersList(0)
 {
 	m_sizesOfLayers = new int[m_nbLayers];
 	for(int i=0; i<m_nbLayers; i++)
@@ -112,7 +25,6 @@ NeuralNetwork::NeuralNetwork(int numberOfLayers, int sizesOfLayers[]) : m_nbLaye
 	m_neuronLayersList = new NeuronLayer*[m_nbLayers];
 	for (int i=0; i<m_nbLayers; i++){
 		m_neuronLayersList[i] = new NeuronLayer(m_sizesOfLayers[i], (i > 0 ? m_sizesOfLayers[i - 1] : -1));
-		// --> the issue here is/was due to the = operator because we need to define a new constructor for NeuronLayer
 	}
 	//std::cout <<  "TEST neuron in layer creation" << m_neuronLayersList[0].m_neurons[0] << std::endl;
 }
@@ -124,6 +36,9 @@ NeuralNetwork::NeuralNetwork(int numberOfLayers, int sizesOfLayers[]) : m_nbLaye
 
 NeuralNetwork::~NeuralNetwork()
 {
+	for(int i=0; i<m_nbLayers; i++){
+		delete m_neuronLayersList[i];
+	}
 	delete [] m_neuronLayersList;
 	delete [] m_sizesOfLayers;
 }
@@ -175,6 +90,7 @@ void NeuralNetwork::sendInput(float inputArray[20][20], int expectedResult)
 
 	NeuralNetwork::forwardPropagation();
 	cost = NeuralNetwork::costFunction(expectedLayerResult);
+	//NeuralNetwork::backPropagation();
 	std::cout << "COST = " << cost << std::endl;
 }
 
@@ -202,14 +118,80 @@ void NeuralNetwork::forwardPropagation()
 			if(m_neuronLayersList[i]->m_neurons[j]>1){
 				m_neuronLayersList[i]->m_neurons[j] = 1.0f;
 			}
-			std::cout << "m_neuronLayersList[" << i << "] -> m_neurons[" << j << "] : " << m_neuronLayersList[i]->m_neurons[j] << std::endl;
+			//std::cout << "m_neuronLayersList[" << i << "] -> m_neurons[" << j << "] : " << m_neuronLayersList[i]->m_neurons[j] << std::endl;
 		}
 	}
 }
 
-/*
+
 void NeuralNetwork::backPropagation()
 {
+	float** dx = new float*[m_sizesOfLayers[m_nbLayers-1]];
 
+	// Run this back propagation on each result (0,1,2,3,4,5,6,7,8,9 in our case)
+	for(int n=0; n<m_sizesOfLayers[m_nbLayers-1]; n++){
+		dx[n] = new float[m_sizesOfLayers[m_nbLayers-2]];
+		for(int k=0; k<m_sizesOfLayers[m_nbLayers-2]; k++){
+			if(n == k){
+				dx[n][k] = 2*(m_neuronLayersList[m_nbLayers-1]->m_neurons[n] - n) * (m_neuronLayersList[m_nbLayers-1]->m_neurons[n]<1 ? m_neuronLayersList[m_nbLayers-1]->m_neurons[n] : 0) * m_neuronLayersList[m_nbLayers-2]->m_neurons[k];
+				m_neuronLayersList[m_nbLayers-1]->m_weight[n][k] -= dx[n][k] * 0.1;
+			}
+			else{
+				dx[n][k] = 0;
+			}
+		}
+	}
+	// And then we continue for the other layers
+	for(int k=m_nbLayers-2; k>0; k--){
+		// Search how much the different neurons output have to change
+		
+		float* dk = new float[m_sizesOfLayers[k]];
+		for(int i=0; i<m_sizesOfLayers[k]; i++){
+			for(int n=0; n<m_sizesOfLayers[k+1]; n++){
+				dk[i] += m_neuronLayersList[k]->m_neurons[i] * dx[n][i];
+			}
+		}
+
+		for(int i=0; i<m_sizesOfLayers[k+1]; i++){
+			delete[] dx[i];
+		}
+		delete[] dx;
+
+		dx = new float*[m_sizesOfLayers[k]];
+		for(int i=0; i<m_sizesOfLayers[k]; i++){
+			dx[i] = new float[m_sizesOfLayers[k-1]];
+			for(int j=0; j<m_sizesOfLayers[k-1]; j++){
+				dx[i][j] = 0;
+			}
+		}
+
+		for(int n=0; n<m_sizesOfLayers[k]; n++){
+			for(int m=0; m<m_sizesOfLayers[k-1]; m++){
+				dx[n][m] += m_neuronLayersList[k]->m_weight[n][m] * dk[n] * 0.1;
+				m_neuronLayersList[k]->m_weight[n][m] += dx[n][m];
+			}
+		}
+		delete[] dk;
+	}
+	for(int i=0; i<m_sizesOfLayers[1]; i++){
+		delete[] dx[i];
+	}
+	delete[] dx;
 }
-*/
+
+void NeuralNetwork::saveNetwork(char* fileName){
+	FILE* file = fopen(fileName, "w");
+
+	if(file == NULL)
+		exit(EXIT_FAILURE);
+	
+	for(int layer=0; layer<m_nbLayers; layer++){
+		fprintf(file, "LAYER %d\n", layer);
+		for(int neuron=0; neuron<m_sizesOfLayers[layer]; neuron++){
+			fprintf(file, "%03f ", m_neuronLayersList[layer]->m_neurons[neuron]);
+		}
+		fprintf(file, "\n______________\n\n");
+	}
+
+	fclose(file);
+}

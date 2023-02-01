@@ -15,15 +15,16 @@ SRC = $(wildcard $(srcdir)*.cpp)
 OBJ = $(subst $(srcdir), $(bindir), $(SRC:.cpp=.o))
 HEAD = $(wildcard ./include/*.h)
 LDLIBS = -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs
+DEBUGFLAG = -g
 
 
 all : $(bindir)$(PROG)
 
 $(bindir)$(PROG) : $(OBJ)
-	$(CC) $(OBJ) -o $(bindir)$(PROG) $(LDLIBS)
+	$(CC) $(OBJ) -o $(bindir)$(PROG) $(LDLIBS) $(DEBUGFLAG)
 
 $(bindir)%.o : $(srcdir)%.cpp $(HEAD)
-	$(CC) -c $< -o $@
+	$(CC) -c $< -o $@ $(DEBUGFLAG)
 
 # Remove temporary files
 clean : cleanConfirm
