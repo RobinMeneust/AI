@@ -14,17 +14,21 @@ PROG = AI
 SRC = $(wildcard $(srcdir)*.cpp)
 OBJ = $(subst $(srcdir), $(bindir), $(SRC:.cpp=.o))
 HEAD = $(wildcard ./include/*.h)
-LDLIBS = -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs
+OPENCV_LIB_DIR = /usr/local/lib
+OPENCV_INCLUDE_DIR = /usr/local/include/opencv4
+LDFLAGS = -I${OPENCV_INCLUDE_DIR} -L${OPENCV_LIB_DIR} -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs
 DEBUGFLAG = -g
 
 
-all : $(bindir)$(PROG)
+all : mkBinDir setLibsPath build
+
+build : $(bindir)$(PROG)
 
 $(bindir)$(PROG) : $(OBJ)
-	$(CC) $(OBJ) -o $(bindir)$(PROG) $(LDLIBS) $(DEBUGFLAG)
+	$(CC) $(OBJ) -o $(bindir)$(PROG) $(LDFLAGS) $(DEBUGFLAG)
 
 $(bindir)%.o : $(srcdir)%.cpp $(HEAD)
-	$(CC) -c $< -o $@ $(DEBUGFLAG)
+	$(CC) -c $< -o $@ $(LDFLAGS) $(DEBUGFLAG)
 
 # Remove temporary files
 clean : cleanConfirm
@@ -36,9 +40,16 @@ doc: createDoxyfile
 	doxygen $(docdir)Doxyfile
 	
 		
-.PHONY: cleanConfirm cleanDoc save saveByDate createDoxyfile restore give run
+.PHONY: mkBinDir setLibsPath cleanConfirm cleanDoc save saveByDate createDoxyfile restore give run
 
+# Create the bin dir
+mkBinDir :
+	if [ ! -d ./bin ]; then mkdir bin; fi
 
+# Set the lib path
+setLibsPath :
+	if [ ! -f /etc/ld.so.conf.d/opencv.conf ]; then echo "${OPENCV_LIB_DIR}" > /etc/ld.so.conf.d/opencv.conf && sudo ldconfig -v; fi
+	
 # Ask for confirmation to delete temporary files
 cleanConfirm :
 	@ echo "Do you want to execute : \"$(RM) $(bindir)*.o *.\*~ *.bak *.old \#*\# \" ? (y/n)" && read answer && [ $${answer} = "y" ]
