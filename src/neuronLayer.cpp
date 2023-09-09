@@ -45,7 +45,7 @@ NeuronLayer::NeuronLayer(int size, int prevLayerSize) : m_size(size), m_prevLaye
 		for(int i=0; i<m_size; i++){
 			m_weight[i] = new float[m_prevLayerSize];
 			for(int j=0; j<m_prevLayerSize; j++)
-				m_weight[i][j] = (float) (rand() % 11) / 10.0f;
+				m_weight[i][j] = (float) (rand() % 101) / 100.0f;
 		}
 	}
 }

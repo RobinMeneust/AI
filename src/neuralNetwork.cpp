@@ -16,7 +16,7 @@
  * @param sizesOfLayers Array containing the size of each layers
  */
 
-NeuralNetwork::NeuralNetwork(int numberOfLayers, int sizesOfLayers[]) : m_nbLayers(numberOfLayers), m_sizesOfLayers(0), m_neuronLayersList(0)
+NeuralNetwork::NeuralNetwork(int numberOfLayers, int sizesOfLayers[]) : m_nbLayers(numberOfLayers), m_sizesOfLayers(0), m_neuronLayersList(0), m_learningRate(0.1)
 {
 	m_sizesOfLayers = new int[m_nbLayers];
 	for(int i=0; i<m_nbLayers; i++)
@@ -53,8 +53,9 @@ NeuralNetwork::~NeuralNetwork()
 float NeuralNetwork::costFunction(float *expectedResult){
 	float cost = 0.0f; // Calculated cost
 	
-	for(int i=0; i<m_sizesOfLayers[m_nbLayers - 1]; i++)
+	for(int i=0; i<m_sizesOfLayers[m_nbLayers - 1]; i++) {
 		cost += pow(m_neuronLayersList[m_nbLayers - 1]->m_neurons[i] - expectedResult[i], 2);
+	}
 	return cost;
 }
 
@@ -81,7 +82,7 @@ void NeuralNetwork::sendInput(float inputArray[20][20], int expectedResult)
 		for(int j=0; j<20; j++){
 			//20*20px and 20*20 neurons in this 1st layer
 			if(k>=400){
-				std::cout << "ERROR: in sendInput(), k is too big (k=" << k << " | (i,j) = (" << i << "," << j << ")" << std::endl;
+				std::cerr << "ERROR: in sendInput(), k is too big (k=" << k << " | (i,j) = (" << i << "," << j << ")" << std::endl;
 			}
 			m_neuronLayersList[0]->m_neurons[k] = inputArray[i][j];
 			k++;
@@ -89,9 +90,37 @@ void NeuralNetwork::sendInput(float inputArray[20][20], int expectedResult)
 	}
 
 	NeuralNetwork::forwardPropagation();
+
 	cost = NeuralNetwork::costFunction(expectedLayerResult);
-	//NeuralNetwork::backPropagation();
-	std::cout << "COST = " << cost << std::endl;
+
+	NeuralNetwork::backPropagation(expectedResult);
+	NeuralNetwork::forwardPropagation();
+	
+	std::cout << "COST = \t\t" << cost << std::endl << "NEW COST = \t" << NeuralNetwork::costFunction(expectedLayerResult) << std::endl;
+}
+
+float NeuralNetwork::getWeightedOutput(int layerIndex, int neuronIndex) {
+	if(layerIndex <= 0 || layerIndex > m_nbLayers || neuronIndex < 0 || neuronIndex >= m_neuronLayersList[layerIndex]->m_size) {
+		std::cerr << "ERROR: Invalid layer or neuron index" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	float weightedOutput = 0;
+	for(int j=0; j<m_sizesOfLayers[layerIndex-1]; j++){
+		weightedOutput += m_neuronLayersList[layerIndex]->m_weight[neuronIndex][j] * m_neuronLayersList[layerIndex-1]->m_neurons[j];
+	}
+	
+	weightedOutput += m_neuronLayersList[layerIndex]->m_bias[neuronIndex];
+	
+	return weightedOutput;
+}
+
+float NeuralNetwork::activationFunction(float input) {
+	if(input<0){
+		return 0.0f;
+	} else {
+		return input;
+	}
 }
 
 /**
@@ -105,78 +134,61 @@ void NeuralNetwork::forwardPropagation()
 	{
 		// X+1 = ReLU(WX+B)
 		// MATRIX PRODUCT
-		for(int j=0; j<m_sizesOfLayers[i]; j++){
-			for(int k=0; k<m_sizesOfLayers[i-1]; k++){
-				m_neuronLayersList[i]->m_neurons[j] += m_neuronLayersList[i]->m_weight[j][k] * m_neuronLayersList[i-1]->m_neurons[k];
-				//std::cout << " K :" << k << "	m_neuronLayersList[" << i << "]->m_neurons[" << j << "] = " << m_neuronLayersList[i]->m_neurons[j] << std::endl;
-			}
-			
-			m_neuronLayersList[i]->m_neurons[j] += m_neuronLayersList[i]->m_bias[j];
-			if(m_neuronLayersList[i]->m_neurons[j]<0){
-				m_neuronLayersList[i]->m_neurons[j] = 0.0f;
-			}
-			if(m_neuronLayersList[i]->m_neurons[j]>1){
-				m_neuronLayersList[i]->m_neurons[j] = 1.0f;
-			}
-			//std::cout << "m_neuronLayersList[" << i << "] -> m_neurons[" << j << "] : " << m_neuronLayersList[i]->m_neurons[j] << std::endl;
+		for(int j=0; i<m_sizesOfLayers[j]; j++){
+			m_neuronLayersList[i]->m_neurons[j] = activationFunction(getWeightedOutput(i, j));
 		}
 	}
 }
 
 
-void NeuralNetwork::backPropagation()
+void NeuralNetwork::backPropagation(int target)
 {
-	float** dx = new float*[m_sizesOfLayers[m_nbLayers-1]];
+	float* previousLayerDerivatives = new float[m_sizesOfLayers[m_nbLayers-1]];
 
-	// Run this back propagation on each result (0,1,2,3,4,5,6,7,8,9 in our case)
-	for(int n=0; n<m_sizesOfLayers[m_nbLayers-1]; n++){
-		dx[n] = new float[m_sizesOfLayers[m_nbLayers-2]];
-		for(int k=0; k<m_sizesOfLayers[m_nbLayers-2]; k++){
-			if(n == k){
-				dx[n][k] = 2*(m_neuronLayersList[m_nbLayers-1]->m_neurons[n] - n) * (m_neuronLayersList[m_nbLayers-1]->m_neurons[n]<1 ? m_neuronLayersList[m_nbLayers-1]->m_neurons[n] : 0) * m_neuronLayersList[m_nbLayers-2]->m_neurons[k];
-				m_neuronLayersList[m_nbLayers-1]->m_weight[n][k] -= dx[n][k] * 0.1;
-			}
-			else{
-				dx[n][k] = 0;
-			}
-		}
+	for(int i=0; i<m_sizesOfLayers[m_nbLayers-1]; i++) {
+		previousLayerDerivatives[i] = 2 * (m_neuronLayersList[m_nbLayers-1]->m_neurons[i] - (i == target ? 1.0f : 0.0f)) / m_sizesOfLayers[m_nbLayers-1];
 	}
-	// And then we continue for the other layers
-	for(int k=m_nbLayers-2; k>0; k--){
-		// Search how much the different neurons output have to change
+
+	// Backpropagation
+	
+	float* newLayerDerivatives = NULL;
+
+	for(int layerIndex=m_nbLayers-1; layerIndex>0; layerIndex--) {
+		float* oldWeightedOutput = new float[m_sizesOfLayers[layerIndex]];
+		newLayerDerivatives = new float[m_sizesOfLayers[layerIndex-1]];
+
+		for(int i=0; i<m_sizesOfLayers[layerIndex-1]; i++) {
+			newLayerDerivatives[i] = 0.0f;
+		}
+
+
+		for(int i=0; i<m_sizesOfLayers[layerIndex]; i++) {
+			oldWeightedOutput[i] = getWeightedOutput(layerIndex, i);
+		}
 		
-		float* dk = new float[m_sizesOfLayers[k]];
-		for(int i=0; i<m_sizesOfLayers[k]; i++){
-			for(int n=0; n<m_sizesOfLayers[k+1]; n++){
-				dk[i] += m_neuronLayersList[k]->m_neurons[i] * dx[n][i];
+		for(int i=0; i<m_sizesOfLayers[layerIndex-1]; i++) {
+			//DERIVATIVE UPDATE
+			for(int j=0; j<m_sizesOfLayers[layerIndex]; j++) {
+				if(oldWeightedOutput[j] > 0) {
+					newLayerDerivatives[i] += previousLayerDerivatives[j] * m_neuronLayersList[layerIndex]->m_weight[j][i];
+				}
+			}
+			newLayerDerivatives[i] /= m_sizesOfLayers[layerIndex-1]; // Average of the decrease speed
+
+			//WEIGHT UPDATE
+			for(int j=0; j<m_sizesOfLayers[layerIndex]; j++) {
+				if(oldWeightedOutput[j] > 0) {
+					m_neuronLayersList[layerIndex]->m_weight[j][i] -= m_learningRate * previousLayerDerivatives[j] * m_neuronLayersList[layerIndex-1]->m_neurons[i];
+				}
 			}
 		}
 
-		for(int i=0; i<m_sizesOfLayers[k+1]; i++){
-			delete[] dx[i];
-		}
-		delete[] dx;
-
-		dx = new float*[m_sizesOfLayers[k]];
-		for(int i=0; i<m_sizesOfLayers[k]; i++){
-			dx[i] = new float[m_sizesOfLayers[k-1]];
-			for(int j=0; j<m_sizesOfLayers[k-1]; j++){
-				dx[i][j] = 0;
-			}
-		}
-
-		for(int n=0; n<m_sizesOfLayers[k]; n++){
-			for(int m=0; m<m_sizesOfLayers[k-1]; m++){
-				dx[n][m] += m_neuronLayersList[k]->m_weight[n][m] * dk[n] * 0.1;
-				m_neuronLayersList[k]->m_weight[n][m] += dx[n][m];
-			}
-		}
-		delete[] dk;
+		delete [] previousLayerDerivatives;
+		delete [] oldWeightedOutput;
+		previousLayerDerivatives = newLayerDerivatives;
 	}
-	for(int i=0; i<m_sizesOfLayers[1]; i++){
-		delete[] dx[i];
-	}
-	delete[] dx;
+
+	delete [] newLayerDerivatives;
 }
 
 void NeuralNetwork::saveNetwork(char* fileName){
