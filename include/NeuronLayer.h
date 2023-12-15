@@ -1,0 +1,37 @@
+/**
+ * @file neuronLayer.h
+ * @author Robin MENEUST
+ * @brief Functions prototypes and class definitions of neuronLayer.cpp
+ * @date 2022-12-14
+ */
+
+#ifndef NEURON_LAYER_H
+#define NEURON_LAYER_H
+
+#include "ActivationFunction.h"
+
+/**
+ * @class NeuronLayer
+ * @brief Layer of neurons with the weight and bias associated to the previous layer
+ * 
+ */
+
+class NeuronLayer {
+private:
+    int nbNeurons;
+    int nbNeuronsPrevLayer;
+    float** weights;
+    float* biases;
+    ActivationFunction* activationFunction;
+
+public:
+    NeuronLayer();
+    NeuronLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction);
+    NeuronLayer(NeuronLayer const& copy);
+    ~NeuronLayer();
+    int getNbNeurons();
+    float* getOutput(float* prevLayerOutput);
+};
+
+
+#endif

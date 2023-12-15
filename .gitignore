@@ -2,3 +2,6 @@ bin/
 obj/
 .vscode/
 schema.png
+samples/
+.idea/
+build/
