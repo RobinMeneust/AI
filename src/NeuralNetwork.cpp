@@ -94,8 +94,30 @@ float *NeuralNetwork::evaluate(float *inputArray) {
     return output;
 }
 
-void NeuralNetwork::fit(float *inputArray, int expectedResult) {
-    //TODO
+void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
+    float* prediction = evaluate(inputArray);
+    float* error = getLossDerivativeVector(prediction, expectedResult);
+    delete[] prediction;
+
+    for(int i=getNbLayers()-1; i>=0; i++) {
+        //TODO
+    }
+}
+
+float* NeuralNetwork::getLossVector(float* prediction, float* expectedResult) {
+    float* loss = new float[10]; // The size should be given in the parameters instead of being hard coded
+    for(int i=0; i<10; i++) {
+        loss[i] = 0.5*(prediction[i]-expectedResult[i])*(prediction[i]-expectedResult[i]);
+    }
+    return loss;
+}
+
+float* NeuralNetwork::getLossDerivativeVector(float* prediction, float* expectedResult) {
+    float* lossDerivative = new float[10]; // The size should be given in the parameters instead of being hard coded
+    for(int i=0; i<10; i++) {
+        lossDerivative[i] = prediction[i]-expectedResult[i];
+    }
+    return lossDerivative;
 }
 
 

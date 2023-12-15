@@ -31,7 +31,9 @@ public:
     int getNbLayers();
     void addLayer(int nbNeurons, ActivationFunction* activationFunction);
     float* evaluate(float* inputArray);
-	void fit(float* inputArray, int expectedResult);
+	void fit(float* inputArray, float* expectedResult);
+    float* getLossVector(float* prediction, float* expectedResult);
+    float* getLossDerivativeVector(float* prediction, float* expectedResult);
 //    void saveNetwork(char* fileName);
 
 };

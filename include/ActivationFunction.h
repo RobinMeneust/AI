@@ -5,7 +5,7 @@
 #define ACTIVATION_FUNCTION_H
 class ActivationFunction {
 public:
-    virtual float getValue(float input) = 0;
+    virtual float* getValue(float* input, int size) = 0;
 };
 
 #endif

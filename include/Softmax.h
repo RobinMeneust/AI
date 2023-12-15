@@ -1,12 +1,12 @@
 //
 // Created by robin on 15/12/2023.
 //
-#ifndef SIGMOID_H
-#define SIGMOID_H
+#ifndef SOFTMAX_H
+#define SOFTMAX_H
 
 #include "ActivationFunction.h"
 
-class Sigmoid : public ActivationFunction {
+class Softmax : public ActivationFunction {
 public:
     float* getValue(float* input, int size);
 };

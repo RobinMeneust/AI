@@ -71,10 +71,11 @@ float* NeuronLayer::getOutput(float* prevLayerOutput) {
 //            std::cout << i << " " <<  j << " : w: " << weights[i][j] << " b: " << biases[i] << " in: " << prevLayerOutput[j] <<  " out: " << output[i] << std::endl;
         }
         output[i] += biases[i];
-        output[i] = activationFunction->getValue(output[i]);
 //        std::cout << "sigm(output[" << i << "]) = " << output[i] << std::endl;
     }
+    float* newOutput = activationFunction->getValue(output,nbNeurons);
+    delete[] output;
 //    std::cout << "return" << std::endl;
-    return output;
+    return newOutput;
 }
 

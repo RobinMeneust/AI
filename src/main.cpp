@@ -13,7 +13,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include "../include/Sigmoid.h"
-#include "../include/ActivationFunction.h"
+#include "../include/Softmax.h"
 
 using namespace cv;
 
