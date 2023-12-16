@@ -6,10 +6,14 @@
 #include <cmath>
 #include <iostream>
 
-float* Sigmoid::getValue(float* input, int size) {
-    float* result = new float[size];
-    for(int i=0; i<size; i++) {
-        result[i] = 1/(1+exp(-input[i]));
+float Sigmoid::getValue(float* input, inputIndex, int size) {
+    return 1/(1+exp(-input[inputIndex]));
+}
+
+float Sigmoid::getDerivative(float* input, int i, int k, int size) {
+    if(i != k) {
+        return 0.0f;
     }
-    return result;
+    float sigmoidXi = getValue(input, i, size);
+    return sigmoidXi * (1 - sigmoidXi);
 }

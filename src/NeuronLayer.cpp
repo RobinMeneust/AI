@@ -61,7 +61,7 @@ int NeuronLayer::getNbNeurons() {
     return nbNeurons;
 }
 
-float* NeuronLayer::getOutput(float* prevLayerOutput) {
+float* NeuronLayer::getWeightedSums(float* prevLayerOutput) {
     float* output = new float[nbNeurons];
     for(int i=0; i<nbNeurons; i++) {
 //        std::cout << i << " " << nbNeurons << std::endl;
@@ -73,9 +73,28 @@ float* NeuronLayer::getOutput(float* prevLayerOutput) {
         output[i] += biases[i];
 //        std::cout << "sigm(output[" << i << "]) = " << output[i] << std::endl;
     }
+    return output;
+}
+
+float* NeuronLayer::getActivationValue(float* input) {
+    return activationFunction->getValue(input,nbNeurons);
+}
+
+float* NeuronLayer::getOutput(float* prevLayerOutput) {
+    float* output = getWeightedSums(prevLayerOutput);
     float* newOutput = activationFunction->getValue(output,nbNeurons);
     delete[] output;
-//    std::cout << "return" << std::endl;
     return newOutput;
 }
 
+float NeuronLayer::getWeight(int neuron, int prevNeuron) {
+    if(neuron >= 0 && neuron < getNbNeurons() && prevNeuron >= 0 && prevNeuron < nbNeuronsPrevLayer) {
+        return weights[neuron][prevNeuron];
+    }
+    std::cerr << "Invalid neuron index and previous neuron index for wright" << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+float NeuronLayer::getDerivative(float* input, int i, int k, int size) {
+    return activationFunction->getDerivative(input, i, k, size);
+}

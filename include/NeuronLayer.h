@@ -30,7 +30,11 @@ public:
     NeuronLayer(NeuronLayer const& copy);
     ~NeuronLayer();
     int getNbNeurons();
+    float* getWeightedSums(float* prevLayerOutput)
     float* getOutput(float* prevLayerOutput);
+    float* getActivationValue(float* prevLayerOutput);
+    float getWeight(int neuron, int prevNeuron);
+    float getDerivative(float* input, int i, int k, int size);
 };
 
 
