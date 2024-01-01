@@ -15,6 +15,8 @@
 #include "../include/Sigmoid.h"
 #include "../include/Softmax.h"
 
+//#include <string>
+//#include <filesystem>
 using namespace cv;
 
 /**
@@ -27,6 +29,11 @@ using namespace cv;
 
 int main()
 {
+
+//    std::string path = "../samples";
+//    for (const auto & entry : std::filesystem::directory_iterator(path))
+//        std::cout << entry.path() << std::endl;
+
 	Mat image; // Image tested. Here it represents 3
 	float intensityArray[28*28]; // 2D array containing intensity level of each pixel (in a 20x20 px image)
 	int r = 0; // Intensity of the color red in the current pixel
@@ -35,7 +42,7 @@ int main()
 	int intensity = 0; // Mean intensity of the 3 colors of the current pixel
 
 	// Read the image to be analyzed
-	image = imread("./samples/train/3/7.jpg");
+	image = imread("../samples/train/3/7.jpg");
 	if (!image.data){
 		std::cerr << "ERROR: No image data" << std::endl;
 		exit(EXIT_FAILURE);
@@ -58,7 +65,8 @@ int main()
     std::cout << "image converted" << std::endl;
     NeuralNetwork* network = new NeuralNetwork(28*28);
     network->addLayer(20, new Sigmoid());
-    network->addLayer(10, new Sigmoid());
+    network->addLayer(10, new Softmax());
+    network->setLearningRate(0.1f);
     std::cout << "ANN created" << std::endl;
 
     float* output = network->evaluate(intensityArray);
@@ -68,6 +76,18 @@ int main()
     }
     std::cout << std::endl;
     delete[] output;
+
+    float expectedResult[10] = {0,0,0,1,0,0,0,0,0,0};
+    network->fit(intensityArray,expectedResult);
+
+    output = network->evaluate(intensityArray);
+    std::cout << "output: " << std::endl;
+    for(int i=0; i<10; i++) {
+        std::cout << output[i] << " ";
+    }
+    std::cout << std::endl;
+    delete[] output;
+
 	/*
 	std::cout <<  "TEST neuron " << network.m_neuronLayersList[1]->m_neurons[0] << std::endl;
 	std::cout <<  "TEST bias " << network.m_neuronLayersList[1]->m_bias[0] << std::endl;

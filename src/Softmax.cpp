@@ -6,7 +6,7 @@
 #include <cmath>
 #include <iostream>
 
-float Softmax::getValue(float* input, inputIndex, int size) {
+float Softmax::getValue(float* input, int inputIndex, int size) {
     float result = exp(input[inputIndex]);
     float denominator = 0.0f;
 
@@ -28,5 +28,9 @@ float Softmax::getDerivative(float* input, int i, int k, int size) {
     if(i == k) {
         return sXi * (1-sXi);
     }
-    return sXi * getValue(input, k, size);
+    return -sXi * getValue(input, k, size);
+}
+
+bool Softmax::isInputMultidimensional() {
+    return true;
 }

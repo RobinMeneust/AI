@@ -61,6 +61,10 @@ int NeuronLayer::getNbNeurons() {
     return nbNeurons;
 }
 
+int NeuronLayer::getNbNeuronsPrevLayer() {
+    return nbNeuronsPrevLayer;
+}
+
 float* NeuronLayer::getWeightedSums(float* prevLayerOutput) {
     float* output = new float[nbNeurons];
     for(int i=0; i<nbNeurons; i++) {
@@ -77,12 +81,20 @@ float* NeuronLayer::getWeightedSums(float* prevLayerOutput) {
 }
 
 float* NeuronLayer::getActivationValue(float* input) {
-    return activationFunction->getValue(input,nbNeurons);
+    float* value = new float[nbNeurons];
+    for(int i=0; i<nbNeurons; i++) {
+        value[i] = activationFunction->getValue(input, i, nbNeurons);
+    }
+    return value;
 }
 
 float* NeuronLayer::getOutput(float* prevLayerOutput) {
     float* output = getWeightedSums(prevLayerOutput);
-    float* newOutput = activationFunction->getValue(output,nbNeurons);
+
+    float* newOutput = new float[nbNeurons];
+    for(int i=0; i<nbNeurons; i++) {
+        newOutput[i] = activationFunction->getValue(output, i, nbNeurons);
+    }
     delete[] output;
     return newOutput;
 }
@@ -91,10 +103,39 @@ float NeuronLayer::getWeight(int neuron, int prevNeuron) {
     if(neuron >= 0 && neuron < getNbNeurons() && prevNeuron >= 0 && prevNeuron < nbNeuronsPrevLayer) {
         return weights[neuron][prevNeuron];
     }
-    std::cerr << "Invalid neuron index and previous neuron index for wright" << std::endl;
+    std::cerr << "getWeight(): Invalid neuron index and previous neuron index for weight" << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+void NeuronLayer::setWeight(int neuron, int prevNeuron, float newValue) {
+    if(neuron >= 0 && neuron < getNbNeurons() && prevNeuron >= 0 && prevNeuron < nbNeuronsPrevLayer) {
+        weights[neuron][prevNeuron] = newValue;
+        return;
+    }
+    exit(EXIT_FAILURE);
+}
+
+float NeuronLayer::getBias(int neuron) {
+    if(neuron >= 0 && neuron < getNbNeurons()) {
+        return biases[neuron];
+    }
+    std::cerr << "Invalid neuron index for bias" << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+void NeuronLayer::setBias(int neuron, float newValue) {
+    if(neuron >= 0 && neuron < getNbNeurons()) {
+        biases[neuron] = newValue;
+        return;
+    }
+    std::cerr << "Invalid neuron index for bias" << std::endl;
     exit(EXIT_FAILURE);
 }
 
 float NeuronLayer::getDerivative(float* input, int i, int k, int size) {
     return activationFunction->getDerivative(input, i, k, size);
+}
+
+bool NeuronLayer::isActivationFunctionMultidimensional() {
+    return activationFunction->isInputMultidimensional();
 }

@@ -1,5 +1,6 @@
 ## Install dependencies
 
+- OpenCV
 
 ## Build
 `cmake -S . -B build -G "Unix Makefiles"`
@@ -7,6 +8,7 @@ Then in build/ : `make`
 
 ## Run
 
+Run the executable file in build/bin/
 
 ## Debug
 

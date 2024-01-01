@@ -34,6 +34,7 @@ public:
 	void fit(float* inputArray, float* expectedResult);
     float* getLossVector(float* prediction, float* expectedResult);
     float* getLossDerivativeVector(float* prediction, float* expectedResult);
+    void setLearningRate(float newValue);
 //    void saveNetwork(char* fileName);
 
 };
