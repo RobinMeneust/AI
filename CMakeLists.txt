@@ -10,4 +10,3 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 add_executable(${PROJECT_NAME} src/main.cpp src/NeuralNetwork.cpp src/NeuronLayer.cpp src/NeuronLayersList.cpp src/Sigmoid.cpp src/Softmax.cpp)
 
 target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} )
-message("test${OpenCV_LIBS}")
