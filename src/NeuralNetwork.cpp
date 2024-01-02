@@ -49,12 +49,14 @@ float *NeuralNetwork::evaluate(float *inputArray) {
 
 void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
     float** weightedSums = new float* [getNbLayers()];
+    float** outputs = new float*[getNbLayers()];
+
     weightedSums[0] = layers->getLayer(0)->getWeightedSums(inputArray);
     for(int i=1; i<getNbLayers(); i++) {
-        float *prevOutput = layers->getLayer(i - 1)->getActivationValue(weightedSums[i - 1]);
-        weightedSums[i] = layers->getLayer(i)->getWeightedSums(prevOutput);
-        delete[] prevOutput;
+        outputs[i-1] = layers->getLayer(i - 1)->getActivationValue(weightedSums[i - 1]);
+        weightedSums[i] = layers->getLayer(i)->getWeightedSums(outputs[i-1]);
     }
+    outputs[getNbLayers()-1] = layers->getLayer(getNbLayers()-1)->getActivationValue(weightedSums[getNbLayers()-1]);
 
     float* predictions = layers->getLayer(getNbLayers() - 1)->getActivationValue(weightedSums[getNbLayers() - 1]);
     float* previousLayerDerivatives = getLossDerivativeVector(predictions, expectedResult);
@@ -71,8 +73,8 @@ void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
             std::cout << " 1 dim" << std::endl;
         }
         if(l>0) {
-            newLayerDerivatives = new float[layers->getLayer(l - 1)->getNbNeurons()];
-            for (int i = 0; i < layers->getLayer(l - 1)->getNbNeurons(); i++) {
+            newLayerDerivatives = new float[layers->getLayer(l)->getNbNeuronsPrevLayer()];
+            for (int i = 0; i < layers->getLayer(l)->getNbNeuronsPrevLayer(); i++) {
                 newLayerDerivatives[i] = 0.0f;
             }
         }
@@ -89,7 +91,11 @@ void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
                 }
                 dv1[k] /= layers->getLayer(l)->getNbNeurons(); // Mean
             } else {
-                dv1[k] += layers->getLayer(l)->getDerivative(weightedSums[l], k, k, layers->getLayer(l)->getNbNeurons());
+                dv1[k] = layers->getLayer(l)->getDerivative(weightedSums[l], k, k, layers->getLayer(l)->getNbNeurons());
+            }
+
+            if(std::isinf(dv1[k]) || std::isnan(dv1[k])) {
+                std::cout << "dv1["<<k<<"] = " << dv1[k] << std::endl;
             }
         }
 
@@ -112,7 +118,7 @@ void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
             for (int j = 0; j < layers->getLayer(l)->getNbNeuronsPrevLayer(); j++) {
                 float d2 = 0.0f;
                 if(l>0) {
-                    d2 = weightedSums[l-1][j];
+                    d2 = outputs[l-1][j];
                 } else {
                     d2 = inputArray[j];
                 }
@@ -132,13 +138,10 @@ void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
 
     for(int i=0; i<getNbLayers(); i++) {
         delete weightedSums[i];
+        delete outputs[i];
     }
     delete [] weightedSums;
-
-//    for(int i=0; i<getNbLayers(); i++) {
-//        delete outputs[i];
-//    }
-//    delete[] outputs;
+    delete [] outputs;
 
     std::cout << "fit done" << std::endl;
     // Sum errors E_i ?

@@ -5,3 +5,4 @@ schema.png
 samples/
 .idea/
 build/
+cmake-*

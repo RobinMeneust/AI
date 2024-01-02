@@ -6,7 +6,7 @@
  */
 
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <vector>
@@ -52,8 +52,8 @@ Mat getNormalizedIntensityMat(Mat image) {
 }
 
 NeuralNetwork* initNN() {
-    NeuralNetwork* network = new NeuralNetwork(26*26);
-    network->addLayer(20, new Sigmoid());
+    NeuralNetwork* network = new NeuralNetwork(28*28);
+    network->addLayer(780, new Sigmoid());
     network->addLayer(10, new Softmax());
     network->setLearningRate(0.1f);
 
@@ -132,32 +132,56 @@ int main()
 
 	// Read the image to be analyzed
     std::vector<String> filenames;
-    glob("../samples/train/3/*.jpg", filenames);
+    glob("../../samples/train/3/*.jpg", filenames);
     float expectedResult[10] = {0,0,0,1,0,0,0,0,0,0};
-    int i=0;
-    for (auto file:filenames) {
-        Mat image = loadImage(file);
-        std::cout << "image loaded" << std::endl;
+    int i=1;
 
-        image = getNormalizedIntensityMat(image);
-        std::cout << "normalized data" << std::endl;
+    Mat image = loadImage("../../samples/train/3/7.jpg");
+    std::cout << "image loaded" << std::endl;
 
-        Mat conv2DMatrix = conv2D(image, 3);
-        std::cout << "Conv2D applied" << std::endl;
-//        cv::imshow("test", conv2DMatrix);
-//        cv::waitKey(0);
+    image = getNormalizedIntensityMat(image);
+    std::cout << "normalized data" << std::endl;
 
-        float* inputData = flatten(conv2DMatrix, 26, 26); // 28 - 3 + 1
-        std::cout << "image converted" << std::endl;
-        std::cout << std::endl;
+//    Mat conv2DMatrix = conv2D(image, 3);
+//    std::cout << "Conv2D applied" << std::endl;
 
+    float* inputData = flatten(image, 28, 28);
+//    float* inputData = flatten(conv2DMatrix, 26, 26); // 28 - 3 + 1
+    std::cout << "image converted" << std::endl;
+
+    for(int j=0; j<100; j++) {
         network->fit(inputData,expectedResult);
-        evaluate(network, inputData); // should give the acc
+        evaluate(network, inputData);
         std::cout << "train: " << i << " / " << filenames.size() << std::endl;
         i++;
-        if(i>10)
-            return 0;
     }
+
+
+    delete inputData;
+
+//    for (auto file:filenames) {
+//        Mat image = loadImage(file);
+//        std::cout << "image loaded" << std::endl;
+//
+//        image = getNormalizedIntensityMat(image);
+//        std::cout << "normalized data" << std::endl;
+//
+//        Mat conv2DMatrix = conv2D(image, 3);
+//        std::cout << "Conv2D applied" << std::endl;
+////        cv::imshow("test", conv2DMatrix);
+////        cv::waitKey(0);
+//
+//        float* inputData = flatten(conv2DMatrix, 26, 26); // 28 - 3 + 1
+//        std::cout << "image converted" << std::endl;
+//        std::cout << std::endl;
+//
+//        network->fit(inputData,expectedResult);
+//        evaluate(network, inputData);
+//        std::cout << "train: " << i << " / " << filenames.size() << std::endl;
+//        i++;
+////        if(i>1000)
+////            return 0;
+//    }
 
 //	network.saveNetwork("log.txt");
 
