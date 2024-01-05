@@ -433,7 +433,7 @@ Let's begin with the first one:
 \begin{equation}
 \begin{split}
     &\forall a,b \in [\![1,w_O]\!]^2, \forall i,j \in [\![a,a+w_F]\!] \times [\![b,b+w_F]\!],\\
-    &\frac{\partial O_{a,b}}{\partial I_{i,j}} = \frac{\partial \sum\limits_{k,l \in [\![0,w_F-1]\!] \times [\![0,w_F-1]\!]} h(a+k,b+l)\times F_{k+1,l+1}}{\partial I_{i,j}} \\
+    &\frac{\partial z_{a,b}}{\partial I_{i,j}} = \frac{\partial \sum\limits_{k,l \in [\![0,w_F-1]\!] \times [\![0,w_F-1]\!]} h(a+k,b+l)\times F_{k+1,l+1}}{\partial I_{i,j}} \\
     &\text{ where } h(k,l) = \begin{cases}
         I_{k,l} &\text{ if } k,l \in [\![1+\frac{p}{2},w_I]\!]^2\\
         0 &\text{ else}
@@ -444,30 +444,68 @@ Let's begin with the first one:
 So we get
 
 \begin{equation}
-    \frac{\partial O_{a,b}}{\partial I_{i,j}} = \begin{cases}
+    \frac{\partial z_{a,b}}{\partial I_{i,j}} = \begin{cases}
         F_{i-a+1,j-b+1} &\text{ if } (i-a),(j-b) \in [\![1,w_O]\!]^2 \\
         0 &\text{ else}
     \end{cases}
 \end{equation}
 
-\textbf{IN PROGRESS}
-\\
+And 
+\begin{equation}
+\frac{\partial O_{a,b}}{\partial z_{a,b}} = \frac{\partial ReLU}{\partial z_{a,b}} = \begin{cases}
+    0 & \text{ if } z_{a,b} < 0\\
+    1 & \text{ if } z_{a,b} > 0
+\end{cases}
+\end{equation}
+
+Therefore
+\begin{equation}
+\begin{split}
+    \frac{\partial O_{a,b}}{\partial I_{i,j}} &= \frac{\partial O_{a,b}}{\partial z_{a,b}} \frac{\partial z_{a,b}}{\partial I_{i,j}}   = \begin{cases}
+    0 & \text{ if } z_{a,b} < 0\\
+    1 & \text{ if } z_{a,b} > 0
+\end{cases} \times \begin{cases}
+        F_{i-a+1,j-b+1} &\text{ if } (i-a),(j-b) \in [\![1,w_O]\!]^2 \\
+        0 &\text{ else}
+    \end{cases}\\
+&= \begin{cases}
+        F_{i-a+1,j-b+1} &\text{ if } (i-a),(j-b) \in [\![1,w_O]\!]^2 \text{ and } z_{a,b} > 0 \\
+        0 &\text{ else}
+    \end{cases}\\
+\end{split}
+\end{equation}
+
 
 Then we calculate the second one:
 
 \begin{equation}
 \begin{split}
     &\forall a,b \in [\![1,w_O]\!]^2, \forall i,j \in [\![1,w_F]\!]^2,\\
-    &\frac{\partial O_{a,b}}{\partial F_{i,j}} = \frac{\partial \sum\limits_{k,l \in [\![0,w_F-1]\!] \times [\![0,w_F-1]\!]} h(a+k,b+l)\times F_{k+1,l+1}}{\partial F_{i,j}} \\
-    &\frac{\partial O_{a,b}}{\partial F_{i,j}} = h(a+i-1, b+j-1) \\
-    &\frac{\partial O_{a,b}}{\partial F_{i,j}} = \begin{cases}
+    &\frac{\partial z_{a,b}}{\partial F_{i,j}} = \frac{\partial \sum\limits_{k,l \in [\![0,w_F-1]\!] \times [\![0,w_F-1]\!]} h(a+k,b+l)\times F_{k+1,l+1}}{\partial F_{i,j}} \\
+    &\frac{\partial z_{a,b}}{\partial F_{i,j}} = h(a+i-1, b+j-1) \\
+    &\frac{\partial z_{a,b}}{\partial F_{i,j}} = \begin{cases}
         I_{a+i-1,b+j-1} &\text{ if } (a+i-1),(b+j-1) \in [\![1+\frac{p}{2},w_I]\!]^2\\
         0 &\text{ else}
     \end{cases} \\
 \end{split}
 \end{equation}
-\textbf{IN PROGRESS}
-\\
+
+Therefore
+\begin{equation}
+\begin{split}
+    \frac{\partial O_{a,b}}{\partial F_{i,j}} &= \frac{\partial O_{a,b}}{\partial z_{a,b}} \frac{\partial z_{a,b}}{\partial F_{i,j}}   = \begin{cases}
+    0 & \text{ if } z_{a,b} < 0\\
+    1 & \text{ if } z_{a,b} > 0
+\end{cases} \times \begin{cases}
+        I_{a+i-1,b+j-1} &\text{ if } (a+i-1),(b+j-1) \in [\![1+\frac{p}{2},w_I]\!]^2\\
+        0 &\text{ else}
+    \end{cases}\\
+&= \begin{cases}
+        I_{a+i-1,b+j-1} &\text{ if } (a+i-1),(b+j-1) \in [\![1+\frac{p}{2},w_I]\!]^2 \text{ and } z_{a,b} > 0 \\
+        0 &\text{ else}
+    \end{cases}\\
+\end{split}
+\end{equation}
 
 
 \newpage
