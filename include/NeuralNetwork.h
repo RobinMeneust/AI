@@ -34,6 +34,7 @@ public:
 	void fit(float* inputArray, float* expectedResult);
     float* getCostDerivatives(float* prediction, float* expectedResult);
     void setLearningRate(float newValue);
+    float getCost(float* prediction, float* expectedResult);
 //    void saveNetwork(char* fileName);
 };
 

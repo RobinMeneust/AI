@@ -15,6 +15,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <random>
 #include "../include/Sigmoid.h"
 #include "../include/Softmax.h"
 
@@ -60,14 +61,15 @@ NeuralNetwork* initNN() {
     return network;
 }
 
-void evaluate(NeuralNetwork* network, float intensityArray[26*26]) { // should not be hardcoded (the dimensions should be editable
+int predict(NeuralNetwork* network, float intensityArray[26*26]) { // should not be hardcoded (the dimensions should be editable
     float* output = network->evaluate(intensityArray);
-    std::cout << "output: " << std::endl;
-    for(int i=0; i<10; i++) {
-        std::cout << output[i] << " ";
+    int i_max = 0;
+    for(int i=1; i<10; i++) {
+        if(output[i] > output[i_max])
+            i_max = i;
     }
-    std::cout << std::endl;
     delete[] output;
+    return i_max;
 }
 
 Mat conv2D(Mat input, int kernelWidth) {
@@ -117,6 +119,29 @@ float* flatten(Mat matrix, int width, int height) {
     return flattenArray;
 }
 
+
+std::vector<String> getDataFiles(int number, bool isTestSet, int maxNbExamples) {
+    std::vector<String> filenames;
+    if(number>=0 && number<=9) {
+        std::string fileNameStr = "../../samples";
+        if(isTestSet)
+            fileNameStr.append("/test/");
+        else
+            fileNameStr.append("/train/");
+        fileNameStr.append(1,number+'0');
+        fileNameStr.append("/*.jpg");
+        glob(fileNameStr, filenames);
+    }
+
+    if(maxNbExamples<0) {
+        maxNbExamples = INT32_MAX;
+    }
+
+    std::vector<String> filenames2 (filenames.begin(), filenames.begin() + min((int)filenames.size(), maxNbExamples));
+    return filenames2;
+}
+
+
 /**
  * @brief Main function
  * @param argc Number of arguments
@@ -127,62 +152,88 @@ float* flatten(Mat matrix, int width, int height) {
 
 int main()
 {
+    std::default_random_engine gen;
+    std::uniform_int_distribution<int> distribution(0,9);
+
     NeuralNetwork* network = initNN();
     std::cout << "ANN created" << std::endl;
 
-	// Read the image to be analyzed
-    std::vector<String> filenames;
-    glob("../../samples/train/3/*.jpg", filenames);
-    float expectedResult[10] = {0,0,0,1,0,0,0,0,0,0};
+    std::vector<String> trainingSet[10];
+    std::vector<String> testSet[10];
+
+    int trainingSetSize = 0;
+    int testSetSize = 0;
+    for(int i=0; i<10; i++) {
+        trainingSet[i] = getDataFiles(i, false, 800);
+        testSet[i] = getDataFiles(i, true, 200);
+
+        trainingSetSize += trainingSet[i].size();
+        testSetSize += testSet[i].size();
+    }
+
+    float expectedResult[10][10];
+    for(int i=0; i<10; i++) {
+        for (int j=0; j<10; j++) {
+            expectedResult[i][j] = i==j ? 1 : 0;
+        }
+    }
     int i=1;
 
-    Mat image = loadImage("../../samples/train/3/7.jpg");
-    std::cout << "image loaded" << std::endl;
+    // TRAIN
+    while(i<=trainingSetSize) {
+        int number = distribution(gen);
+        if(trainingSet[number].empty()) {
+            int oldNumber = number;
+            do {
+                number++;
+                if(number>9) {
+                    number = 0;
+                }
+            } while(number != oldNumber && trainingSet[number].empty());
+        }
 
-    image = getNormalizedIntensityMat(image);
-    std::cout << "normalized data" << std::endl;
+        String filename = trainingSet[number].back();
+        trainingSet[number].pop_back();
 
-//    Mat conv2DMatrix = conv2D(image, 3);
-//    std::cout << "Conv2D applied" << std::endl;
+        Mat image = loadImage(filename);
+        image = getNormalizedIntensityMat(image);
+        float* inputData = flatten(image, 28, 28);
+        network->fit(inputData, expectedResult[number]);
+        std::cout << "test: " << i << " / " << trainingSetSize << std::endl;
+        i++;
+        delete inputData;
+    }
 
-    float* inputData = flatten(image, 28, 28);
-//    float* inputData = flatten(conv2DMatrix, 26, 26); // 28 - 3 + 1
-    std::cout << "image converted" << std::endl;
-    network->fit(inputData,expectedResult);
-    evaluate(network, inputData);
-//    for(int j=0; j<100; j++) {
-//        network->fit(inputData,expectedResult);
-//        evaluate(network, inputData);
-//        std::cout << "train: " << i << " / " << filenames.size() << std::endl;
-//        i++;
-//    }
+    i=1;
+    // TEST
+    int validPredictions=0;
+    while(i<=testSetSize) {
+        int number = distribution(gen);
+        if(testSet[number].empty()) {
+            int oldNumber = number;
+            do {
+                number++;
+                if(number>9) {
+                    number = 0;
+                }
+            } while(number != oldNumber && testSet[number].empty());
+        }
 
+        String filename = testSet[number].back();
+        testSet[number].pop_back();
 
-    delete inputData;
+        Mat image = loadImage(filename);
+        image = getNormalizedIntensityMat(image);
+        float* inputData = flatten(image, 28, 28);
+        if(predict(network, inputData) == number) {
+            validPredictions++;
+        }
+        std::cout << "test: " << i << " / " << testSetSize << std::endl;
+        i++;
+        delete inputData;
+    }
 
-//    for (auto file:filenames) {
-//        Mat image = loadImage(file);
-//        std::cout << "image loaded" << std::endl;
-//
-//        image = getNormalizedIntensityMat(image);
-//        std::cout << "normalized data" << std::endl;
-//
-//        Mat conv2DMatrix = conv2D(image, 3);
-//        std::cout << "Conv2D applied" << std::endl;
-////        cv::imshow("test", conv2DMatrix);
-////        cv::waitKey(0);
-//
-//        float* inputData = flatten(conv2DMatrix, 26, 26); // 28 - 3 + 1
-//        std::cout << "image converted" << std::endl;
-//        std::cout << std::endl;
-//
-//        network->fit(inputData,expectedResult);
-//        evaluate(network, inputData);
-//        std::cout << "train: " << i << " / " << filenames.size() << std::endl;
-//        i++;
-////        if(i>1000)
-////            return 0;
-//    }
+    std::cout << "Accuracy: " << ((float)validPredictions/(float)i) << std::endl;
 
 //	network.saveNetwork("log.txt");
 

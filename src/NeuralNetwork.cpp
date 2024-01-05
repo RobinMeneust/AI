@@ -51,6 +51,7 @@ void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
     float** weightedSums = new float*[getNbLayers()];
     float** outputs = new float*[getNbLayers()];
 
+
     weightedSums[0] = layers->getLayer(0)->getWeightedSums(inputArray);
     outputs[0] = layers->getLayer(0)->getActivationValues(weightedSums[0]);
     for(int i=1; i<getNbLayers(); i++) {
@@ -113,8 +114,6 @@ void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
     }
     delete[] weightedSums;
     delete[] outputs;
-
-    std::cout << "fit done" << std::endl;
 }
 
 
@@ -130,6 +129,14 @@ float* NeuralNetwork::getCostDerivatives(float* prediction, float* expectedResul
         lossDerivative[i] = prediction[i]-expectedResult[i];
     }
     return lossDerivative;
+}
+
+float NeuralNetwork::getCost(float* prediction, float* expectedResult) {
+    float cost = 0.0f;
+    for(int i=0; i<10; i++) {
+        cost += 0.5f*(prediction[i]-expectedResult[i])*(prediction[i]-expectedResult[i]);
+    }
+    return cost/10.0f; // mean
 }
 
 void NeuralNetwork::setLearningRate(float newValue) {
