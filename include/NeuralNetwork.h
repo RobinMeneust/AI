@@ -32,10 +32,9 @@ public:
     void addLayer(int nbNeurons, ActivationFunction* activationFunction);
     float* evaluate(float* inputArray);
 	void fit(float* inputArray, float* expectedResult);
-    float* getLossDerivativeVector(float* prediction, float* expectedResult);
+    float* getCostDerivatives(float* prediction, float* expectedResult);
     void setLearningRate(float newValue);
 //    void saveNetwork(char* fileName);
-
 };
 
 #endif

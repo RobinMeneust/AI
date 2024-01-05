@@ -6,20 +6,18 @@
 #include <cmath>
 #include <iostream>
 
-float Relu::getValue(float* input, int inputIndex, int size) {
-    std::cout << " get val " << input << " " << inputIndex << " " << size << std::endl;
-    return input[inputIndex] <= 0 ? 0 : input[inputIndex];
-}
-
-float Relu::getDerivative(float* input, int i, int k, int size) {
-    std::cout << " get deriv " << input << " " << i << " " << k << " " << size << std::endl;
-    if(i != k) {
-        std::cerr << "Error: i must be equals to k" << std::endl;
-        exit(EXIT_FAILURE);
+float* Relu::getValues(float* input, int size) {
+    float* output = new float[size];
+    for(int i=0; i<size; i++) {
+        output[i] = input[i] <= 0 ? 0 : input[i];
     }
-    return input[i] <= 0 ? 0 : 1;
+    return output;
 }
 
-bool Relu::isInputMultidimensional() {
-    return false;
+float* Relu::getDerivatives(float* input, int size) {
+    float* output = getValues(input, size);
+    for(int i=0; i<size; i++) {
+        output[i] = input[i] <= 0 ? 0 : 1;
+    }
+    return output;
 }

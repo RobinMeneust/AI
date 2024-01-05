@@ -8,22 +8,30 @@
 #include "../include/NeuronLayer.h"
 #include <iostream>
 #include <cstdlib>
-#include <ctime>
+#include <cmath>
+#include <bits/stdc++.h>
 
 NeuronLayer::NeuronLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction *activationFunction) : nbNeurons(nbNeurons), nbNeuronsPrevLayer(nbNeuronsPrevLayer), weights(nullptr), biases(nullptr), activationFunction(activationFunction) {
-	std::srand(std::time(nullptr));
 	// Allocate memory and initialize neuron layer with random values for bias and weight
+    // Use Uniform Xavier Initialization
+
+    float upperBound = sqrt(6.0f/(nbNeuronsPrevLayer+nbNeurons));
+    float lowerBound = -upperBound;
+
+    // random generator
+    std::default_random_engine gen;
+    std::uniform_real_distribution<float> distribution(lowerBound,upperBound);
 
 	biases = new float[nbNeurons];
 	for(int i=0; i<nbNeurons; i++){
-		biases[i] = ((float) (rand() % 11) / 5.0f) -1.0f;
+		biases[i] = distribution(gen);
 	}
 
     weights = new float*[nbNeurons];
     for(int i=0; i<nbNeurons; i++){
         weights[i] = new float[nbNeuronsPrevLayer];
         for(int j=0; j<nbNeuronsPrevLayer; j++) {
-            weights[i][j] = ((float) (rand() % 101) / 50.0f) -1.0f;
+            weights[i][j] = distribution(gen);
         }
     }
 }
@@ -68,35 +76,27 @@ int NeuronLayer::getNbNeuronsPrevLayer() {
 float* NeuronLayer::getWeightedSums(float* prevLayerOutput) {
     float* output = new float[nbNeurons];
     for(int i=0; i<nbNeurons; i++) {
-//        std::cout << i << " " << nbNeurons << std::endl;
         output[i] = 0.0f;
         for(int j=0; j<nbNeuronsPrevLayer; j++) {
+
+        }
+        for(int j=0; j<nbNeuronsPrevLayer; j++) {
             output[i] += prevLayerOutput[j] * weights[i][j];
-//            std::cout << i << " " <<  j << " : w: " << weights[i][j] << " b: " << biases[i] << " in: " << prevLayerOutput[j] <<  " out: " << output[i] << std::endl;
         }
         output[i] += biases[i];
-//        std::cout << "sigm(output[" << i << "]) = " << output[i] << std::endl;
     }
     return output;
 }
 
-float* NeuronLayer::getActivationValue(float* input) {
-    float* value = new float[nbNeurons];
-    for(int i=0; i<nbNeurons; i++) {
-        value[i] = activationFunction->getValue(input, i, nbNeurons);
-    }
-    return value;
+float* NeuronLayer::getActivationValues(float* input) {
+    return activationFunction->getValues(input, nbNeurons);
 }
 
 float* NeuronLayer::getOutput(float* prevLayerOutput) {
-    float* output = getWeightedSums(prevLayerOutput);
-
-    float* newOutput = new float[nbNeurons];
-    for(int i=0; i<nbNeurons; i++) {
-        newOutput[i] = activationFunction->getValue(output, i, nbNeurons);
-    }
-    delete[] output;
-    return newOutput;
+    float* weightedSum = getWeightedSums(prevLayerOutput);
+    float* output = activationFunction->getValues(weightedSum, nbNeurons);
+    delete[] weightedSum;
+    return output;
 }
 
 float NeuronLayer::getWeight(int neuron, int prevNeuron) {
@@ -132,10 +132,6 @@ void NeuronLayer::setBias(int neuron, float newValue) {
     exit(EXIT_FAILURE);
 }
 
-float NeuronLayer::getDerivative(float* input, int i, int k, int size) {
-    return activationFunction->getDerivative(input, i, k, size);
-}
-
-bool NeuronLayer::isActivationFunctionMultidimensional() {
-    return activationFunction->isInputMultidimensional();
+float* NeuronLayer::getActivationDerivatives(float* input) {
+    return activationFunction->getDerivatives(input, getNbNeurons());
 }

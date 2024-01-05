@@ -6,31 +6,40 @@
 #include <cmath>
 #include <iostream>
 
-float Softmax::getValue(float* input, int inputIndex, int size) {
-    float result = exp(input[inputIndex]);
-    float denominator = 0.0f;
-
-    for(int j=0; j<size; j++) {
-        denominator += exp(input[j]);
+float Softmax::getMax(float* input, int size) {
+    float max = input[0];
+    for(int i=1; i<size; i++) {
+        if(max < input[i]) {
+            max = input[i];
+        }
     }
-    result /= denominator;
-    return result;
+    return max;
 }
 
-/**
- * Calculate (d softmax(x_i)) / (d x_k)
- * Softmax takes the input (x_1, x_2, ..., x_n) and a x_i component of this vector
- * Here x_i and x_k are both components of the input vector
- * @return
- */
-float Softmax::getDerivative(float* input, int i, int k, int size) {
-    float sXi = getValue(input, i, size);
-    if(i == k) {
-        return sXi * (1-sXi);
+float* Softmax::getValues(float* input, int size) {
+    float max = getMax(input, size); // used to avoid overflow
+    if(max<0) {
+        max = 0.0f;
     }
-    return -sXi * getValue(input, k, size);
+
+    float* output = new float[size];
+    float* expTemp = new float[size];
+    float sumExp = 0.0f;
+    for(int i=0; i<size; i++) {
+        expTemp[i] = exp(input[i]-max);
+        sumExp += expTemp[i];
+    }
+    for(int i=0; i<size; i++) {
+        output[i] = expTemp[i] / sumExp;
+    }
+    delete[] expTemp;
+    return output;
 }
 
-bool Softmax::isInputMultidimensional() {
-    return true;
+float* Softmax::getDerivatives(float* input, int size) {
+    float* output = getValues(input, size);
+    for(int i=0; i<size; i++) {
+        output[i] = output[i] * (1 - output[i]);
+    }
+    return output;
 }

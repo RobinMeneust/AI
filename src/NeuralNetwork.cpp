@@ -48,112 +48,75 @@ float *NeuralNetwork::evaluate(float *inputArray) {
 }
 
 void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
-    float** weightedSums = new float* [getNbLayers()];
+    float** weightedSums = new float*[getNbLayers()];
     float** outputs = new float*[getNbLayers()];
 
     weightedSums[0] = layers->getLayer(0)->getWeightedSums(inputArray);
+    outputs[0] = layers->getLayer(0)->getActivationValues(weightedSums[0]);
     for(int i=1; i<getNbLayers(); i++) {
-        outputs[i-1] = layers->getLayer(i - 1)->getActivationValue(weightedSums[i - 1]);
         weightedSums[i] = layers->getLayer(i)->getWeightedSums(outputs[i-1]);
+        outputs[i] = layers->getLayer(i)->getActivationValues(weightedSums[i]);
     }
-    outputs[getNbLayers()-1] = layers->getLayer(getNbLayers()-1)->getActivationValue(weightedSums[getNbLayers()-1]);
 
-    float* predictions = layers->getLayer(getNbLayers() - 1)->getActivationValue(weightedSums[getNbLayers() - 1]);
-    float* previousLayerDerivatives = getLossDerivativeVector(predictions, expectedResult);
-    delete predictions;
+    // dC/da_k * da_k/dz_k
+    float* currentCostDerivatives = getCostDerivatives(outputs[getNbLayers()-1], expectedResult); // dC/da_k
+    float* activationDerivatives = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(weightedSums[getNbLayers()-1]);
+    for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
+        currentCostDerivatives[i] *= (1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()) * activationDerivatives[i];
+    }
+    delete[] activationDerivatives;
 
-    float* newLayerDerivatives = nullptr;
+    float* nextCostDerivatives = nullptr;
 
-    std::cout << "NB LAYERS: " << getNbLayers() << std::endl;
-	for(int l=getNbLayers()-1; l>=0; l--) {
-        std::cout << "Layer N " << l << " SIZE: " << layers->getLayer(l)->getNbNeurons() << std::endl;
-        if(layers->getLayer(l)->isActivationFunctionMultidimensional()) {
-            std::cout << " 2 dim" << std::endl;
-        } else {
-            std::cout << " 1 dim" << std::endl;
+    for(int l=getNbLayers()-1; l>=0; l--) {
+        // Next cost derivatives computation
+        if (l>0) {
+            nextCostDerivatives = new float[layers->getLayer(l-1)->getNbNeurons()];
+            for (int i=0; i<layers->getLayer(l-1)->getNbNeurons(); i++) {
+                nextCostDerivatives[i] = 0.0f;
+                for (int k=0; k<layers->getLayer(l)->getNbNeurons(); k++) {
+                    nextCostDerivatives[i] += currentCostDerivatives[k] * layers->getLayer(l)->getWeight(k,i); // dC/da_k * da_k/dz_k * dz_k/da_i
+                }
+            }
         }
+
+        // Adjust the weights and biases of the current layer
+        float* prevLayerOutput = nullptr;
+        int prevLayerOutputsSize = 0;
         if(l>0) {
-            newLayerDerivatives = new float[layers->getLayer(l)->getNbNeuronsPrevLayer()];
-            for (int i = 0; i < layers->getLayer(l)->getNbNeuronsPrevLayer(); i++) {
-                newLayerDerivatives[i] = 0.0f;
+            prevLayerOutput = outputs[l-1];
+            prevLayerOutputsSize = layers->getLayer(l-1)->getNbNeurons();
+        } else {
+            prevLayerOutput = inputArray;
+            prevLayerOutputsSize = inputSize;
+        }
+
+        NeuronLayer* current = layers->getLayer(l);
+        for(int i=0; i<layers->getLayer(l)->getNbNeurons(); i++) {
+            for(int j=0; j<prevLayerOutputsSize; j++) {
+                float partialDelta = learningRate * currentCostDerivatives[i] ; // dC/da_k * da_k/dz_k
+                float newWeightValue = current->getWeight(i,j) - partialDelta * prevLayerOutput[j];// delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
+                float newBiasValue = current->getBias(i) - partialDelta; // delta = dC/da_k * da_k/dz_k
+
+                current->setWeight(i, j, newWeightValue);
+                current->setBias(i, newBiasValue);
             }
         }
 
-
-
-        // dv1 = Vector, each component d1k is the derivative of the output of the neuron i of layer l in respect to the weighted sum of the previous layer neurons, calculated for neuron i of the layer l, k is in [0,nbNeuronsLayerL - 1]
-        float* dv1 = new float[layers->getLayer(l)->getNbNeurons()];
-        for(int k=0; k<layers->getLayer(l)->getNbNeurons(); k++) {
-            if(layers->getLayer(l)->isActivationFunctionMultidimensional()) {
-                dv1[k] = 0.0f;
-                for (int i = 0; i < layers->getLayer(l)->getNbNeurons(); i++) {
-                    dv1[k] += layers->getLayer(l)->getDerivative(weightedSums[l], i, k, layers->getLayer(l)->getNbNeurons());
-                }
-                dv1[k] /= layers->getLayer(l)->getNbNeurons(); // Mean
-            } else {
-                dv1[k] = layers->getLayer(l)->getDerivative(weightedSums[l], k, k, layers->getLayer(l)->getNbNeurons());
-            }
-
-            if(std::isinf(dv1[k]) || std::isnan(dv1[k])) {
-                std::cout << "dv1["<<k<<"] = " << dv1[k] << std::endl;
-            }
-        }
-
-        for (int i = 0; i < layers->getLayer(l)->getNbNeurons(); i++) {
-            //DERIVATIVES UPDATE
-            // Calculate the derivative of the output of the neuron i of layer l in respect to the output of the neuron k of layer l-1
-            // Which is equal to d1 * d2 where:
-            //  d1 = dv1[i] = derivative of the output of the neuron i of layer l in respect to the weighted sum of the previous neurons, calculated for neuron i of the layer l
-            //  d2 = derivative of the weighted sum of the previous neurons, calculated for neuron i of the layer l in respect to the output of the neuron k of layer l-1
-            if(l>0) {
-                // if it's the first layer we won't need the derivatives later since it's the last step of the backpropagation
-                for (int j = 0; j < layers->getLayer(l)->getNbNeuronsPrevLayer(); j++) {
-                    float d2 = layers->getLayer(l)->getWeight(i, j);
-                    newLayerDerivatives[j] += previousLayerDerivatives[i] * dv1[i] * d2;
-                }
-            }
-
-            //WEIGHTS UPDATE
-            // d2 = derivative of the weighted sum of the previous neurons, calculated for neuron i of the layer l in respect to the weight associated to this neuron and the neuron k of layer l-1
-            for (int j = 0; j < layers->getLayer(l)->getNbNeuronsPrevLayer(); j++) {
-                float d2 = 0.0f;
-                if(l>0) {
-                    d2 = outputs[l-1][j];
-                } else {
-                    d2 = inputArray[j];
-                }
-                float prevValue = layers->getLayer(l)->getWeight(i, j);
-                float newValue = prevValue - learningRate * previousLayerDerivatives[i] * dv1[i] * d2;
-                layers->getLayer(l)->setWeight(i, j, newValue);
-            }
-
-            //BIAS UPDATE
-            // d2 = 1 = derivative of the weighted sum of the previous neurons, calculated for neuron i of the layer l in respect to the bias associated to this neuron
-            layers->getLayer(l)->setBias(i, layers->getLayer(l)->getBias(i) - (learningRate * previousLayerDerivatives[i] * dv1[i]));
-        }
-        delete[] dv1;
-        delete previousLayerDerivatives;
-		previousLayerDerivatives = newLayerDerivatives;
-	}
+        delete[] currentCostDerivatives;
+        currentCostDerivatives = nextCostDerivatives;
+    }
 
     for(int i=0; i<getNbLayers(); i++) {
         delete weightedSums[i];
         delete outputs[i];
     }
-    delete [] weightedSums;
-    delete [] outputs;
+    delete[] weightedSums;
+    delete[] outputs;
 
     std::cout << "fit done" << std::endl;
-    // Sum errors E_i ?
 }
 
-//float NeuralNetwork::getLossVector(float* prediction, float* expectedResult) {
-//    float loss = 0.0f;
-//    for(int i=0; i<10; i++) {
-//        loss += 0.5*(prediction[i]-expectedResult[i])*(prediction[i]-expectedResult[i]);
-//    }
-//    return loss/10.0f;
-//}
 
 /**
  * Calculate the derivative d MSE / d prediction[i] for all i
@@ -161,7 +124,7 @@ void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
  * @param expectedResult
  * @return
  */
-float* NeuralNetwork::getLossDerivativeVector(float* prediction, float* expectedResult) {
+float* NeuralNetwork::getCostDerivatives(float* prediction, float* expectedResult) {
     float* lossDerivative = new float[10]; // The size should be given in the parameters instead of being hard coded
     for(int i=0; i<10; i++) {
         lossDerivative[i] = prediction[i]-expectedResult[i];

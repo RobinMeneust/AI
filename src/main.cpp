@@ -53,7 +53,7 @@ Mat getNormalizedIntensityMat(Mat image) {
 
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork(28*28);
-    network->addLayer(780, new Sigmoid());
+    network->addLayer(80, new Sigmoid());
     network->addLayer(10, new Softmax());
     network->setLearningRate(0.1f);
 
@@ -148,13 +148,14 @@ int main()
     float* inputData = flatten(image, 28, 28);
 //    float* inputData = flatten(conv2DMatrix, 26, 26); // 28 - 3 + 1
     std::cout << "image converted" << std::endl;
-
-    for(int j=0; j<100; j++) {
-        network->fit(inputData,expectedResult);
-        evaluate(network, inputData);
-        std::cout << "train: " << i << " / " << filenames.size() << std::endl;
-        i++;
-    }
+    network->fit(inputData,expectedResult);
+    evaluate(network, inputData);
+//    for(int j=0; j<100; j++) {
+//        network->fit(inputData,expectedResult);
+//        evaluate(network, inputData);
+//        std::cout << "train: " << i << " / " << filenames.size() << std::endl;
+//        i++;
+//    }
 
 
     delete inputData;

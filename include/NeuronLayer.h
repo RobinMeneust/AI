@@ -33,13 +33,12 @@ public:
     int getNbNeuronsPrevLayer();
     float* getWeightedSums(float* prevLayerOutput);
     float* getOutput(float* prevLayerOutput);
-    float* getActivationValue(float* prevLayerOutput);
+    float* getActivationValues(float* prevLayerOutput);
     float getWeight(int neuron, int prevNeuron);
     void setWeight(int neuron, int prevNeuron, float newValue);
     float getBias(int neuron);
     void setBias(int neuron, float newValue);
-    float getDerivative(float* input, int i, int k, int size);
-    bool isActivationFunctionMultidimensional();
+    float* getActivationDerivatives(float* input);
 };
 
 

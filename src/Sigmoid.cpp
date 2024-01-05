@@ -6,19 +6,19 @@
 #include <cmath>
 #include <iostream>
 
-float Sigmoid::getValue(float* input, int inputIndex, int size) {
-    return 1/(1+exp(-input[inputIndex]));
-}
 
-float Sigmoid::getDerivative(float* input, int i, int k, int size) {
-    if(i != k) {
-        std::cerr << "Error: i must be equals to k" << std::endl;
-        exit(EXIT_FAILURE);
+float* Sigmoid::getValues(float* input, int size) {
+    float* output = new float[size];
+    for(int i=0; i<size; i++) {
+        output[i] = 1.0f/(1+exp(-input[i]));
     }
-    float sigmoidXi = getValue(input, i, size);
-    return sigmoidXi * (1 - sigmoidXi);
+    return output;
 }
 
-bool Sigmoid::isInputMultidimensional() {
-    return false;
+float* Sigmoid::getDerivatives(float* input, int size) {
+    float* output = getValues(input, size);
+    for(int i=0; i<size; i++) {
+        output[i] = output[i] * (1 - output[i]);
+    }
+    return output;
 }
