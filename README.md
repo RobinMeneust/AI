@@ -18,4 +18,4 @@ Run the executable file in build/bin/
 
 ## Formulae used
 
-[PDF](AI_Project.pdf)
+[PDF](pdf/AI_Project.pdf)
