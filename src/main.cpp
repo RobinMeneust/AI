@@ -54,7 +54,7 @@ Mat getNormalizedIntensityMat(Mat image) {
 
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork(28*28);
-    network->addLayer(80, new Sigmoid());
+    network->addLayer(600, new Sigmoid());
     network->addLayer(10, new Softmax());
     network->setLearningRate(0.1f);
 
@@ -179,6 +179,8 @@ int main()
     }
     int i=1;
 
+    int displayProgressionStep = 5*trainingSetSize/100;
+
     // TRAIN
     while(i<=trainingSetSize) {
         int number = distribution(gen);
@@ -199,11 +201,13 @@ int main()
         image = getNormalizedIntensityMat(image);
         float* inputData = flatten(image, 28, 28);
         network->fit(inputData, expectedResult[number]);
-        std::cout << "test: " << i << " / " << trainingSetSize << std::endl;
+        if(i%displayProgressionStep==0)
+            std::cout << "training: " << std::fixed << std::setprecision(2) << (float)i/(float)trainingSetSize * 100.0f << " %" << std::endl;
         i++;
         delete inputData;
     }
 
+    displayProgressionStep = 5*testSetSize/100;
     i=1;
     // TEST
     int validPredictions=0;
@@ -228,7 +232,8 @@ int main()
         if(predict(network, inputData) == number) {
             validPredictions++;
         }
-        std::cout << "test: " << i << " / " << testSetSize << std::endl;
+        if(i%displayProgressionStep==0)
+            std::cout << "test: " << std::fixed << std::setprecision(2) << (float)i/(float)testSetSize * 100.0f << " %" << std::endl;
         i++;
         delete inputData;
     }
