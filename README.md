@@ -15,3 +15,7 @@ Run the executable file in build/bin/
 - `cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Debug`
 - `cmake --build build-debug`
 - `gdb build-debug/simple_example`
+
+## Formulae used
+
+[PDF](AI_Project.pdf)
