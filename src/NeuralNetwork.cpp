@@ -47,57 +47,95 @@ float *NeuralNetwork::evaluate(float *inputArray) {
     return output;
 }
 
-void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
-    float** weightedSums = new float*[getNbLayers()];
-    float** outputs = new float*[getNbLayers()];
+void NeuralNetwork::fit(Batch batch) {
+    float*** weightedSums = new float**[getNbLayers()];
+    float*** outputs = new float**[getNbLayers()];
 
+    for(int i=0; i<getNbLayers(); i++) {
+        weightedSums[i] = new float*[batch.size];
+        outputs[i] = new float*[batch.size];
+    }
 
-    weightedSums[0] = layers->getLayer(0)->getWeightedSums(inputArray);
-    outputs[0] = layers->getLayer(0)->getActivationValues(weightedSums[0]);
+    for(int b=0; b<batch.size; b++) {
+        weightedSums[0][b] = layers->getLayer(0)->getWeightedSums(batch.input[b]);
+    }
+
+    outputs[0] = new float*[batch.size];
+    for(int b=0; b<batch.size; b++) {
+        outputs[0][b] = layers->getLayer(0)->getActivationValues(weightedSums[0][b]);
+    }
+
     for(int i=1; i<getNbLayers(); i++) {
-        weightedSums[i] = layers->getLayer(i)->getWeightedSums(outputs[i-1]);
-        outputs[i] = layers->getLayer(i)->getActivationValues(weightedSums[i]);
+        for(int b=0; b<batch.size; b++) {
+            weightedSums[i][b] = layers->getLayer(i)->getWeightedSums(outputs[i-1][b]);
+            outputs[i][b] = layers->getLayer(i)->getActivationValues(weightedSums[i][b]);
+        }
     }
 
     // dC/da_k * da_k/dz_k
-    float* currentCostDerivatives = getCostDerivatives(outputs[getNbLayers()-1], expectedResult); // dC/da_k
-    float* activationDerivatives = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(weightedSums[getNbLayers()-1]);
-    for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
-        currentCostDerivatives[i] *= (1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()) * activationDerivatives[i];
+    float** currentCostDerivatives = new float*[batch.size];
+    for(int b=0; b<batch.size; b++) {
+        currentCostDerivatives[b] = getCostDerivatives(outputs[getNbLayers()-1][b], batch.target[b]); // dC/da_k
     }
+
+    float** activationDerivatives = new float*[batch.size];
+    for(int b=0; b<batch.size; b++) {
+        activationDerivatives[b] = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(weightedSums[getNbLayers()-1][b]);
+        for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
+            currentCostDerivatives[b][i] *= (1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()) * activationDerivatives[b][i];
+        }
+    }
+
+    for(int i=0; i<batch.size; i++) {
+        delete activationDerivatives[i];
+    }
+
     delete[] activationDerivatives;
 
-    float* nextCostDerivatives = nullptr;
+    float** nextCostDerivatives = nullptr;
 
     for(int l=getNbLayers()-1; l>=0; l--) {
         // Next cost derivatives computation
         if (l>0) {
-            nextCostDerivatives = new float[layers->getLayer(l-1)->getNbNeurons()];
-            for (int i=0; i<layers->getLayer(l-1)->getNbNeurons(); i++) {
-                nextCostDerivatives[i] = 0.0f;
-                for (int k=0; k<layers->getLayer(l)->getNbNeurons(); k++) {
-                    nextCostDerivatives[i] += currentCostDerivatives[k] * layers->getLayer(l)->getWeight(k,i); // dC/da_k * da_k/dz_k * dz_k/da_i
+            nextCostDerivatives = new float*[batch.size];
+            for(int b=0; b<batch.size; b++) {
+                nextCostDerivatives[b] = new float[layers->getLayer(l-1)->getNbNeurons()];
+                for (int i = 0; i < layers->getLayer(l - 1)->getNbNeurons(); i++) {
+                    nextCostDerivatives[b][i] = 0.0f;
+                    for (int k = 0; k < layers->getLayer(l)->getNbNeurons(); k++) {
+                        nextCostDerivatives[b][i] += currentCostDerivatives[b][k] * layers->getLayer(l)->getWeight(k,i); // dC/da_k * da_k/dz_k * dz_k/da_i
+                    }
                 }
             }
         }
 
         // Adjust the weights and biases of the current layer
-        float* prevLayerOutput = nullptr;
+        float** prevLayerOutput = nullptr;
         int prevLayerOutputsSize = 0;
         if(l>0) {
             prevLayerOutput = outputs[l-1];
             prevLayerOutputsSize = layers->getLayer(l-1)->getNbNeurons();
         } else {
-            prevLayerOutput = inputArray;
+            prevLayerOutput = batch.input;
             prevLayerOutputsSize = inputSize;
         }
 
         NeuronLayer* current = layers->getLayer(l);
         for(int i=0; i<layers->getLayer(l)->getNbNeurons(); i++) {
             for(int j=0; j<prevLayerOutputsSize; j++) {
-                float partialDelta = learningRate * currentCostDerivatives[i] ; // dC/da_k * da_k/dz_k
-                float newWeightValue = current->getWeight(i,j) - partialDelta * prevLayerOutput[j];// delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
-                float newBiasValue = current->getBias(i) - partialDelta; // delta = dC/da_k * da_k/dz_k
+                // Mean of the derivatives
+                float deltaWeight = 0.0f;
+                float deltaBias = 0.0f;
+                for(int b=0; b<batch.size; b++) {
+                    deltaWeight += currentCostDerivatives[b][i] * prevLayerOutput[b][j]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
+                    deltaBias += currentCostDerivatives[b][i]; // delta = dC/da_k * da_k/dz_k
+                }
+                deltaWeight /= (float) batch.size;
+                deltaBias /= (float) batch.size;
+
+                // Adjust the parameters
+                float newWeightValue = current->getWeight(i,j) - learningRate * deltaWeight;
+                float newBiasValue = current->getBias(i) - learningRate * deltaBias;
 
                 current->setWeight(i, j, newWeightValue);
                 current->setBias(i, newBiasValue);
@@ -109,8 +147,12 @@ void NeuralNetwork::fit(float *inputArray, float* expectedResult) {
     }
 
     for(int i=0; i<getNbLayers(); i++) {
-        delete weightedSums[i];
-        delete outputs[i];
+        for(int b=0; b<batch.size; b++) {
+            delete weightedSums[i][b];
+            delete outputs[i][b];
+        }
+        delete[] weightedSums[i];
+        delete[] outputs[i];
     }
     delete[] weightedSums;
     delete[] outputs;

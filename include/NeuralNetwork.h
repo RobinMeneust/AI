@@ -11,6 +11,7 @@
 #include "NeuronLayer.h"
 #include "ActivationFunction.h"
 #include "NeuronLayersList.h"
+#include "../include/Batch.h"
 
 /**
  * @class NeuralNetwork
@@ -31,7 +32,7 @@ public:
     int getNbLayers();
     void addLayer(int nbNeurons, ActivationFunction* activationFunction);
     float* evaluate(float* inputArray);
-	void fit(float* inputArray, float* expectedResult);
+	void fit(Batch batch);
     float* getCostDerivatives(float* prediction, float* expectedResult);
     void setLearningRate(float newValue);
     float getCost(float* prediction, float* expectedResult);

@@ -281,6 +281,8 @@ Otherwise if $l=L$:
 
 \subsection{Algorithm}
 
+\textbf{Note}: This algorithm is not optimized, we should use the fact that we are using matrices.
+
 \subsubsection{Step 1: feed-forward and store values}
 
 \begin{lstlisting}[language=Python]
@@ -303,9 +305,11 @@ for(i in range(len(layers)):
 \subsubsection{Step 2: Back-propagation}
 \begin{lstlisting}[language=Python]
 # dC/da_k * da_k/dz_k
-currentCostDerivatives = getCostDerivatives(outputs[len(layers)-1], expectedOutput) # dC/da_k
-for(l in range(len(layers)-1,-1,-1):
-    currentCostDerivatives[l] *= (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[l];
+currentCostDerivatives = getCostDerivatives(outputs[len(layers)-1], expectedOutput) # vector of dC/da_k for all k
+activationDerivatives = getActivationDerivatives(len(layers)-1, weightedSums[getNbLayers()-1]); # vector of da_k/dz_k for all k
+
+for(i in range(getLayerSize(len(layers) - 1)):
+    currentCostDerivatives[i] *= (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[i];
 
 
 for(l in range(len(layers)-1,-1,-1):
@@ -325,6 +329,78 @@ for(l in range(len(layers)-1,-1,-1):
         for(j in range(len(prevLayerOutput)):
             setWeight(l,i,j) -= lr * currentCostDerivatives[i] * prevLayerOutput[j] # lr = learning rate and we have dC/da_k * da_k/dz_k * dz_k/dw_i,j
             setBias(l,i) -= lr * currentCostDerivatives[i] # dC/da_k * da_k/dz_k
+
+    currentCostDerivatives = nextCostDerivatives
+   
+\end{lstlisting}
+
+\newpage
+\subsection{Improvement: mini-batch}
+
+Instead of training only once all the examples one by one, we will randomly create batches of examples. So for all epoch and for all batch in the epoch, we feed-forward all the examples of the batch and we calculate the error for each. Then we modify the previous algorithm to propagate all the batch derivatives vector and when we adjust a parameter we use the mean derivative of all the batch derivatives.
+We will now send several examples (of the same batch) to our function for thee back-propagation (batch with several inputs instead of one input).\\
+Here we will choose to only train on complete batches, so if there are leftovers after grouping items in batch of the same size, we won't use them.
+
+\subsubsection{Step 1: feed-forward and store values}
+
+\begin{lstlisting}[language=Python]
+# batch: list of inputs vector, fed to this network
+# getWeightedSum(layerIndex, prevLayerValues, batchSize) (list of vectors z_i of the layer layerIndex of all items in the batch: it's a matrix)
+# activationFunction(layerIndex, input) (list of vectors a_i of the layer layerIndex of all items in the batch: it's a matrix)
+
+outputs = []
+weightedSums = []
+
+outputs[0] = getWeightedSum(0, batch, len(batch))
+weightedSums[0] = activationFunction(i, outputs[0], len(batch))
+
+for(i in range(len(layers)):
+    weightedSums[i] = getWeightedSum(i, outputs[i-1], len(batch))
+    outputs[i] = activationFunction(i, weightedSums[i], len(batch))
+\end{lstlisting}
+
+\newpage
+\subsubsection{Step 2: Back-propagation}
+\begin{lstlisting}[language=Python]
+# dC/da_k * da_k/dz_k
+currentCostDerivatives = getCostDerivatives(outputs[len(layers)-1], expectedOutput, len(batch)) # Matrix of dC/da_k for all batch item and for all k
+activationDerivatives = getActivationDerivatives(len(layers)-1, weightedSums[getNbLayers()-1], len(batch)) # Matrix of da_k/dz_k for all batch item and for all k
+
+
+for(b in range(len(batch))):
+    for(i in range(getLayerSize(len(layers) - 1)):
+        currentCostDerivatives[b][i] *= (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[b][i];
+
+
+for(l in range(len(layers)-1,-1,-1):
+    # Next cost derivatives computation
+    if l>0:
+        nextCostDerivatives = []
+        for(b in range(len(batch))):
+            nextCostDerivatives[b] = []
+            for(i in range(getLayerSize(l-1))):
+                nextCostDerivatives[b][i] = 0
+                for(k in range(getLayerSize(l))):
+                    nextCostDerivatives[b][i] += currentCostDerivatives[b][k] * getWeight(l,k,i) # dC/da_k * da_k/dz_k * dz_k/da_i
+
+    # Adjust the weights and biases of the current layer
+
+    prevLayerOutput = outputs[l-1] if l>0 else batch
+    
+    for(i in range(getLayerSize(l))):
+        for(j in range(len(prevLayerOutput)):
+            # Mean of the derivatives
+            deltaWeight = 0
+            deltaBias = 0
+            for(b in range(len(batch))):
+                deltaWeight += currentCostDerivatives[b][i] * prevLayerOutput[b][j]
+                deltaBias += currentCostDerivatives[b][i]
+            deltaWeight /= len(batch)
+            deltaBias /= len(batch)
+
+            # Adjust the parameters
+            setWeight(l,i,j) -= lr * deltaWeight # lr = learning rate and we have dC/da_k * da_k/dz_k * dz_k/dw_i,j
+            setBias(l,i) -= lr * deltaBias # dC/da_k * da_k/dz_k
 
     currentCostDerivatives = nextCostDerivatives
    
