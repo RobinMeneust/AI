@@ -19,6 +19,7 @@
 #include "../include/Sigmoid.h"
 #include "../include/Softmax.h"
 #include "../include/Batch.h"
+#include "../include/Instance.h"
 
 using namespace cv;
 
@@ -55,9 +56,9 @@ Mat getNormalizedIntensityMat(Mat image) {
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork(28*28);
 //    network->addLayer(32, new Sigmoid());
-    network->addLayer(100, new Sigmoid());
+    network->addLayer(400, new Sigmoid());
     network->addLayer(10, new Softmax());
-    network->setLearningRate(0.01f);
+    network->setLearningRate(0.001f);
 
     return network;
 }
@@ -121,121 +122,98 @@ float* flatten(Mat matrix, int width, int height) {
 }
 
 
-std::vector<String> getDataFiles(int number, bool isTestSet, int maxNbExamples) {
+std::vector<Instance> getDataset(bool isTestSet, int maxNbExamplesPerClass) {
+    std::vector<Instance> instances;
+    if(maxNbExamplesPerClass<1) {
+        std::cerr << "Invalid value for maxNbExamples must be greater or equal to 1" << std::endl;
+        return instances;
+    }
+
     std::vector<String> filenames;
-    if(number>=0 && number<=9) {
+
+    for(int i=0; i<10; i++) {
         std::string fileNameStr = "../../samples";
         if(isTestSet)
             fileNameStr.append("/test/");
         else
             fileNameStr.append("/train/");
-        fileNameStr.append(1,number+'0');
+        fileNameStr.append(1,i+'0');
         fileNameStr.append("/*.jpg");
         glob(fileNameStr, filenames);
+
+        for(int j=0; j<filenames.size(); j++) {
+            Instance instance;
+            Mat image = loadImage(filenames[j]);
+            image = getNormalizedIntensityMat(image);
+            instance.data = flatten(image, 28, 28); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
+            if(instance.data == nullptr) {
+                std::cout << "no" << std::endl;
+            }
+            instance.label = i;
+            instances.push_back(instance);
+            if(j>=maxNbExamplesPerClass)
+                break;
+        }
     }
 
-    if(maxNbExamples<0) {
-        maxNbExamples = INT32_MAX;
-    }
+    return instances;
+}
 
-    std::vector<String> filenames2 (filenames.begin(), filenames.begin() + min((int)filenames.size(), maxNbExamples));
-    return filenames2;
+std::vector<Instance> getDataset(bool isTestSet) {
+    return getDataset(isTestSet, INT32_MAX);
 }
 
 /**
  *
  * @param batchSize
- * @param datasetFiles Array of 10 elements: one per digit (0...9). Its elements are vectors of filename of images corresponding to this digit
+ * @param datasetFiles Array of 10 elements: one per digit (0...9). Its elements are vectors of inputs corresponding to this digit
  * @param datasetSize
  * @param targets
  * @return
  */
 
-std::vector<Batch> generateBatches(int batchSize, std::vector<String> datasetFiles[10], int datasetSize, float targets[10][10]) {
+std::vector<Batch> generateBatches(int batchSize, std::vector<Instance> dataset, float targets[10][10]) {
     //TODO: This function is too slow and we repeat the transformation several times on data that have already been transformed
     auto seed = (unsigned) time(nullptr);
     std::default_random_engine gen(seed);
-    std::uniform_int_distribution<int> distribution(0,9);
+
     std::vector<Batch> batches;
+    std::shuffle(std::begin(dataset), std::end(dataset), gen);
 
-    // Copy the array datasetFiles
-    std::vector<String> copyDataSetFiles[10];
-    for(int i=0; i<10; i++) {
-        copyDataSetFiles[i] = std::vector<String>(datasetFiles[i]);
-    }
-
-    for(int i=0; i<datasetSize/batchSize; i++) {
+    int k=0;
+    for(int i=0; i<dataset.size()/batchSize; i++) {
         Batch batch;
         batch.input = new float*[batchSize];
         batch.target = new float*[batchSize];
         batch.size = batchSize;
+
         for(int j=0; j<batchSize; j++) {
-            // pick a random file from the dataset and remove it
-            int number = distribution(gen);
-            if (copyDataSetFiles[number].empty()) {
-                int oldNumber = number;
-                do {
-                    number++;
-                    if (number > 9) {
-                        number = 0;
-                    }
-                } while (number != oldNumber && copyDataSetFiles[number].empty());
-            }
-
-            String filename = copyDataSetFiles[number].back();
-            copyDataSetFiles[number].pop_back();
-
-            Mat image = loadImage(filename);
-            image = getNormalizedIntensityMat(image);
-            batch.input[j] = flatten(image, 28, 28);
-            batch.target[j] = targets[number];
+            Instance instance = dataset[k];
+            batch.input[j] = instance.data;
+            batch.target[j] = targets[instance.label];
+            k++;
         }
         batches.push_back(batch);
     }
     return batches;
 }
 
-void removeBatches(std::vector<Batch> batches, int batchSize) {
-    while(!batches.empty()) {
-        Batch batch = batches.back();
-
-        for(int i=0; i<batchSize; i++) {
-            delete batch.input[i];
-        }
+void removeBatches(std::vector<Batch> batches) {
+    for(auto & batch : batches) {
         delete[] batch.input;
-
-        // target is not deleted since this array elements are shared between all batches
-
-        batches.pop_back();
     }
+    batches.clear();
 }
 
-float getAccuracy(NeuralNetwork* network, std::vector<String> testSetFiles[10], int testSetSize) {
-    // Copy the array testSet
-    std::vector<String> copyTestSetFiles[10];
-    for(int i=0; i<10; i++) {
-        copyTestSetFiles[i] = std::vector<String>(testSetFiles[i]);
-    }
-
-    int validPredictions=0;
-    int i=0;
-    while(i<testSetSize) {
-        for (int number = 0; number < 10; number++) {
-            while(!copyTestSetFiles[number].empty()) {
-                String filename = copyTestSetFiles[number].back();
-                copyTestSetFiles[number].pop_back();
-                Mat image = loadImage(filename);
-                image = getNormalizedIntensityMat(image);
-                float *inputData = flatten(image, 28, 28);
-                if (predict(network, inputData) == number) {
-                    validPredictions++;
-                }
-                delete inputData;
-                i++;
-            }
+float getAccuracy(NeuralNetwork* network, std::vector<Instance> testSet) {
+    int validPredictions = 0;
+    for(int i=0; i<testSet.size(); i++) {
+        if (predict(network, testSet[i].data) == testSet[i].label) {
+            validPredictions++;
         }
     }
-    return ((float)validPredictions/(float)testSetSize);
+
+    return ((float)validPredictions/(float)testSet.size());
 }
 
 /**
@@ -251,23 +229,15 @@ int main()
     NeuralNetwork* network = initNN();
     std::cout << "ANN created" << std::endl;
 
-    std::vector<String> trainingSet[10];
-    std::vector<String> testSet[10];
+    std::vector<Instance> trainingSet;
+    std::vector<Instance> testSet;
 
-    int nbEpochs = 30;
+    int nbEpochs = 100;
     int batchSize = 32;
 
-    int trainingSetSize = 0;
-    int testSetSize = 0;
-    for(int i=0; i<10; i++) {
-        trainingSet[i] = getDataFiles(i, false, -1);
-        testSet[i] = getDataFiles(i, true, 200);
-
-        trainingSetSize += trainingSet[i].size();
-        testSetSize += testSet[i].size();
-    }
-
-    std::cout << "Dataset filenames list fetched" << std::endl;
+    std::cout << "Fetching and transforming data..." << std::endl;
+    trainingSet = getDataset(false,160);
+    testSet = getDataset(true, 40);
 
     float expectedResult[10][10];
     for(int i=0; i<10; i++) {
@@ -279,18 +249,19 @@ int main()
     // TRAIN
     std::cout << "Training..." << std::endl;
     for(int epoch=0; epoch<nbEpochs; epoch++) {
-        std::cout << "Generate batches" << std::endl;
-        std::vector<Batch> batches = generateBatches(batchSize, trainingSet, trainingSetSize, expectedResult);
+        std::cout << "Generating batches..." << std::endl;
+        std::vector<Batch> batches = generateBatches(batchSize, trainingSet, expectedResult);
+
         if(batches.empty()) {
             std::cerr << "The batches could not be generated. The batch size might be too large" << std::endl;
             exit(EXIT_FAILURE);
         }
-        int b = 0;
+
         for(auto &batch : batches) {
             network->fit(batch);
         }
-        removeBatches(batches, batchSize);
-        std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << getAccuracy(network, testSet, testSetSize) << std::endl;
+        removeBatches(batches);
+        std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << getAccuracy(network, testSet) << std::endl;
     }
     std::cout << "training done" << std::endl;
 

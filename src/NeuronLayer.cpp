@@ -78,9 +78,6 @@ float* NeuronLayer::getWeightedSums(float* prevLayerOutput) {
     for(int i=0; i<nbNeurons; i++) {
         output[i] = 0.0f;
         for(int j=0; j<nbNeuronsPrevLayer; j++) {
-
-        }
-        for(int j=0; j<nbNeuronsPrevLayer; j++) {
             output[i] += prevLayerOutput[j] * weights[i][j];
         }
         output[i] += biases[i];
