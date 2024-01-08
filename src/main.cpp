@@ -18,6 +18,8 @@
 #include <random>
 #include "../include/Sigmoid.h"
 #include "../include/Softmax.h"
+#include "../include/Relu.h"
+#include "../include/LeakyRelu.h"
 #include "../include/Batch.h"
 #include "../include/Instance.h"
 
@@ -32,32 +34,12 @@ Mat loadImage(std::string filename) {
     return image;
 }
 
-Mat getNormalizedIntensityMat(Mat image) {
-    int r = 0; // Intensity of the color red in the current pixel
-    int g = 0; // Intensity of the color blue in the current pixel
-    int b = 0; // Intensity of the color green in the current pixel
-    int intensity = 0; // Mean intensity of the 3 colors of the current pixel
-    float* intensityArray = new float[image.cols*image.rows];
-
-    int i=0;
-    for(int x=0; x<image.cols; x++){
-        for(int y=0; y<image.rows; y++){
-            b = image.at<Vec3b>(x, y)[0];
-            g = image.at<Vec3b>(x, y)[1];
-            r = image.at<Vec3b>(x, y)[2];
-            intensity = (r+g+b)/3;
-            intensityArray[i] = (float)intensity/255;
-            i++;
-        }
-    }
-    return Mat(image.cols,image.rows,CV_32FC1,intensityArray);
-}
-
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork(28*28);
 //    network->addLayer(32, new Sigmoid());
-    network->addLayer(600, new Sigmoid());
+    network->addLayer(512, new LeakyRelu());
     network->addLayer(10, new Softmax());
+//    network->setLearningRate(0.03f);
     network->setLearningRate(0.03f);
 
     return network;
@@ -144,11 +126,10 @@ std::vector<Instance> getDataset(bool isTestSet, int maxNbExamplesPerClass) {
         for(int j=0; j<filenames.size(); j++) {
             Instance instance;
             Mat image = loadImage(filenames[j]);
-            image = getNormalizedIntensityMat(image);
-            instance.data = flatten(image, 28, 28); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
-            if(instance.data == nullptr) {
-                std::cout << "no" << std::endl;
-            }
+            Mat normalizedImage;
+            cv::normalize(image, normalizedImage, 0, 1, cv::NORM_MINMAX);
+
+            instance.data = flatten(normalizedImage, 28, 28); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
             instance.label = i;
             instances.push_back(instance);
             if(j>=maxNbExamplesPerClass)
@@ -233,10 +214,12 @@ int main()
     std::vector<Instance> testSet;
 
     int nbEpochs = 100;
-    int batchSize = 32;
+    int batchSize = 64;
 
     std::cout << "Fetching and transforming data..." << std::endl;
-    trainingSet = getDataset(false,500);
+//    trainingSet = getDataset(false,6000);
+//    testSet = getDataset(true, 1000);
+    trainingSet = getDataset(false,300);
     testSet = getDataset(true, 100);
 
     float expectedResult[10][10];
@@ -247,11 +230,13 @@ int main()
     }
 
     // TRAIN
+    bool display = false;
     std::cout << "Training..." << std::endl;
     for(int epoch=0; epoch<nbEpochs; epoch++) {
         std::cout << "Generating batches..." << std::endl;
         std::vector<Batch> batches = generateBatches(batchSize, trainingSet, expectedResult);
 
+        std::cout << "Training batches..." << std::endl;
         if(batches.empty()) {
             std::cerr << "The batches could not be generated. The batch size might be too large" << std::endl;
             exit(EXIT_FAILURE);
@@ -266,6 +251,7 @@ int main()
     std::cout << "training done" << std::endl;
 
 
+    // TODO: delete instances and create an Instance class instead of enum to simplify the destruction process
 
     delete network;
 

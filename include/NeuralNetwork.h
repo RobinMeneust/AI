@@ -8,6 +8,7 @@
 #ifndef NEURON_NETWORK_H
 #define NEURON_NETWORK_H
 
+#include <string>
 #include "NeuronLayer.h"
 #include "ActivationFunction.h"
 #include "NeuronLayersList.h"
@@ -35,8 +36,7 @@ public:
 	void fit(Batch batch);
     float* getCostDerivatives(float* prediction, float* expectedResult);
     void setLearningRate(float newValue);
-    float getCost(float* prediction, float* expectedResult);
-//    void saveNetwork(char* fileName);
+    void save(std::string fileName);
 };
 
 #endif
