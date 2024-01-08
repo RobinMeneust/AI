@@ -98,14 +98,17 @@ void NeuralNetwork::fit(Batch batch) {
         // Next cost derivatives computation
         if (l>0) {
             nextCostDerivatives = new float*[batch.size];
+
             for(int b=0; b<batch.size; b++) {
+                float* nextActivationDerivatives = layers->getLayer(l-1)->getActivationDerivatives(weightedSums[l-1][b]);
                 nextCostDerivatives[b] = new float[layers->getLayer(l-1)->getNbNeurons()];
                 for (int i = 0; i < layers->getLayer(l - 1)->getNbNeurons(); i++) {
                     nextCostDerivatives[b][i] = 0.0f;
                     for (int k = 0; k < layers->getLayer(l)->getNbNeurons(); k++) {
-                        nextCostDerivatives[b][i] += currentCostDerivatives[b][k] * layers->getLayer(l)->getWeight(k,i); // dC/da_k * da_k/dz_k * dz_k/da_i
+                        nextCostDerivatives[b][i] += currentCostDerivatives[b][k] * layers->getLayer(l)->getWeight(k,i) * nextActivationDerivatives[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
                     }
                 }
+                delete nextActivationDerivatives;
             }
         }
 

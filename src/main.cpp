@@ -56,9 +56,9 @@ Mat getNormalizedIntensityMat(Mat image) {
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork(28*28);
 //    network->addLayer(32, new Sigmoid());
-    network->addLayer(400, new Sigmoid());
+    network->addLayer(600, new Sigmoid());
     network->addLayer(10, new Softmax());
-    network->setLearningRate(0.001f);
+    network->setLearningRate(0.03f);
 
     return network;
 }
@@ -236,8 +236,8 @@ int main()
     int batchSize = 32;
 
     std::cout << "Fetching and transforming data..." << std::endl;
-    trainingSet = getDataset(false,160);
-    testSet = getDataset(true, 40);
+    trainingSet = getDataset(false,500);
+    testSet = getDataset(true, 100);
 
     float expectedResult[10][10];
     for(int i=0; i<10; i++) {
