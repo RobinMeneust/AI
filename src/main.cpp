@@ -230,7 +230,6 @@ int main()
     }
 
     // TRAIN
-    bool display = false;
     std::cout << "Training..." << std::endl;
     for(int epoch=0; epoch<nbEpochs; epoch++) {
         std::cout << "Generating batches..." << std::endl;

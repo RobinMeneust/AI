@@ -56,11 +56,6 @@ float *NeuralNetwork::evaluate(float *inputArray) {
             delete output;
         output = newOutput;
     }
-    if(nanLayer!=-1) {
-        std::cout << "layer nan: " << nanLayer << std::endl;
-        save("log.txt");
-        exit(EXIT_FAILURE);
-    }
     return output;
 }
 
@@ -98,23 +93,6 @@ void NeuralNetwork::fit(Batch batch) {
     float** currentCostDerivatives = new float*[batch.size];
     for(int b=0; b<batch.size; b++) {
         currentCostDerivatives[b] = getCostDerivatives(outputs[getNbLayers()-1][b], batch.target[b]); // dC/da_k
-        for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
-            if (std::isnan(currentCostDerivatives[b][i])) {
-                std::cerr << "null currentCostDerivatives[b][i] last layer loop 1" << std::endl;
-                std::cout << "b: " << b << " i: " << i << std::endl;
-                std::cout << "WEIGHTED_SUMS: ";
-                for(int j=0; j<layers->getLayer(getNbLayers()-1)->getNbNeurons(); j++) {
-                    std::cout << weightedSums[getNbLayers() - 1][b][j] << " ";
-                }
-                std::cout << std::endl << std::endl << "OUTPUTS: ";
-                for(int j=0; j<layers->getLayer(getNbLayers()-1)->getNbNeurons(); j++) {
-                    std::cout << outputs[getNbLayers() - 1][b][j] << " ";
-                }
-                std::cout << std::endl;
-                save("log2.txt");
-                exit(-1);
-            }
-        }
     }
 
     float** activationDerivatives = new float*[batch.size];
@@ -122,23 +100,6 @@ void NeuralNetwork::fit(Batch batch) {
         activationDerivatives[b] = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(weightedSums[getNbLayers()-1][b]);
         for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
             currentCostDerivatives[b][i] *= (1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()) * activationDerivatives[b][i];
-            bool stop = false;
-            if (std::isnan(currentCostDerivatives[b][i])) {
-                std::cerr << "null nextActivationDerivatives[b][i] last layer loop 2" << std::endl;
-                stop = true;
-            }
-            if (std::isnan((1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()))) {
-                std::cerr << "null (1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()) last layer loop 2" << std::endl;
-                stop = true;
-            }
-            if (std::isnan(activationDerivatives[b][i])) {
-                std::cerr << "null activationDerivatives[b][i] last layer loop 2" << std::endl;
-                stop = true;
-            }
-            if(stop) {
-                save("log2.txt");
-                exit(-1);
-            }
         }
     }
 
@@ -162,28 +123,6 @@ void NeuralNetwork::fit(Batch batch) {
                     nextCostDerivatives[b][i] = 0.0f;
                     for (int k = 0; k < layers->getLayer(l)->getNbNeurons(); k++) {
                         nextCostDerivatives[b][i] += currentCostDerivatives[b][k] * layers->getLayer(l)->getWeight(k,i) * nextActivationDerivatives[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
-                        bool stop = false;
-                        if(std::isnan(nextActivationDerivatives[i])) {
-                            std::cerr << "null nextActivationDerivatives[i] layer (subtract 1) " << l << std::endl;
-                            stop = true;
-                        }
-                        if(std::isnan(layers->getLayer(l)->getWeight(k,i))) {
-                            std::cerr << "null layers->getLayer(l)->getWeight(k,i) layer (subtract 1) " << l << std::endl;
-                            stop = true;
-                        }
-
-                        if(std::isnan(nextCostDerivatives[b][i])) {
-                            std::cerr << "null nextCostDerivatives[b][i] layer (subtract 1) " << l << std::endl;
-                            stop = true;
-                        }
-                        if(std::isnan(currentCostDerivatives[b][k])) {
-                            std::cerr << "null currentCostDerivatives[b][k] layer (subtract 1) " << l << std::endl;
-                            stop = true;
-                        }
-                        if(stop) {
-                            save("log2.txt");
-                            exit(-1);
-                        }
                     }
                 }
                 delete nextActivationDerivatives;
