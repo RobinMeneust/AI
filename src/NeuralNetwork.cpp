@@ -48,6 +48,7 @@ float *NeuralNetwork::evaluate(float *inputArray) {
 }
 
 void NeuralNetwork::fit(Batch batch) {
+    // feed-forward
     float*** weightedSums = new float**[getNbLayers()];
     float*** outputs = new float**[getNbLayers()];
 
@@ -72,25 +73,44 @@ void NeuralNetwork::fit(Batch batch) {
         }
     }
 
+    // back-propagation
+
     // dC/da_k * da_k/dz_k
+    float** tempCostDerivatives = new float*[batch.size];
     float** currentCostDerivatives = new float*[batch.size];
+
     for(int b=0; b<batch.size; b++) {
-        currentCostDerivatives[b] = getCostDerivatives(outputs[getNbLayers()-1][b], batch.target[b]); // dC/da_k
+        tempCostDerivatives[b] = getCostDerivatives(outputs[getNbLayers()-1][b], batch.target[b]); // dC/da_k
     }
 
-    float** activationDerivatives = new float*[batch.size];
+    float*** activationDerivatives = new float**[batch.size];
+    float invSize = (1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()); // value used several times in the formulae
     for(int b=0; b<batch.size; b++) {
         activationDerivatives[b] = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(weightedSums[getNbLayers()-1][b]);
+        currentCostDerivatives[b] = new float[layers->getLayer(getNbLayers()-1)->getNbNeurons()];
         for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
-            currentCostDerivatives[b][i] *= (1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()) * activationDerivatives[b][i];
+            if(layers->getLayer(getNbLayers()-1)->isActivationFunctionMultiDim()) {
+                currentCostDerivatives[b][i] = 0.0f;
+
+                for(int j=0; j<layers->getLayer(getNbLayers()-1)->getNbNeurons(); j++) {
+                    currentCostDerivatives[b][i] += tempCostDerivatives[b][j] * invSize * activationDerivatives[b][j][i];
+                }
+            } else {
+                currentCostDerivatives[b][i] = tempCostDerivatives[b][i] * invSize * activationDerivatives[b][0][i];
+            }
         }
     }
 
-    for(int i=0; i<batch.size; i++) {
-        delete activationDerivatives[i];
+    for(int b=0; b<batch.size; b++) {
+        if(layers->getLayer(getNbLayers()-1)->isActivationFunctionMultiDim()) {
+            for (int j = 0; j < layers->getLayer(getNbLayers() - 1)->getNbNeurons(); j++) {
+                delete activationDerivatives[b][j];
+            }
+        } else {
+            delete activationDerivatives[b][0];
+        }
+        delete[] activationDerivatives[b];
     }
-
-    delete[] activationDerivatives;
 
     float** nextCostDerivatives = nullptr;
 
@@ -100,10 +120,30 @@ void NeuralNetwork::fit(Batch batch) {
             nextCostDerivatives = new float*[batch.size];
             for(int b=0; b<batch.size; b++) {
                 nextCostDerivatives[b] = new float[layers->getLayer(l-1)->getNbNeurons()];
+
+
                 for (int i = 0; i < layers->getLayer(l - 1)->getNbNeurons(); i++) {
-                    nextCostDerivatives[b][i] = 0.0f;
-                    for (int k = 0; k < layers->getLayer(l)->getNbNeurons(); k++) {
-                        nextCostDerivatives[b][i] += currentCostDerivatives[b][k] * layers->getLayer(l)->getWeight(k,i); // dC/da_k * da_k/dz_k * dz_k/da_i
+                    nextCostDerivatives[b][i] = 0.0f; // sum for all j,p,j dC/da_k * da_k/dz_p * dz_p/da_j * da_j/dz_i
+
+                    for (int j = 0; j < layers->getLayer(l)->getNbNeurons(); j++) {
+                        activationDerivatives[b] = layers->getLayer(l-1)->getActivationDerivatives(weightedSums[l-1][b]); // matrix of da_j/dz_i for all j and all i
+
+                        if(layers->getLayer(l-1)->isActivationFunctionMultiDim()) {
+                            for (int p = 0; p < layers->getLayer(l)->getNbNeurons(); p++) {
+                                nextCostDerivatives[b][i] += currentCostDerivatives[b][p] * layers->getLayer(l)->getWeight(p,j) * activationDerivatives[b][j][i];
+                            }
+                        } else {
+                            nextCostDerivatives[b][i] += currentCostDerivatives[b][j] * layers->getLayer(l)->getWeight(j,i) * activationDerivatives[b][0][i];
+                        }
+
+                        if(layers->getLayer(l-1)->isActivationFunctionMultiDim()) {
+                            for (int k = 0; k < layers->getLayer(l)->getNbNeurons(); k++) {
+                                delete activationDerivatives[b][k];
+                            }
+                        } else {
+                            delete activationDerivatives[b][0];
+                        }
+                        delete[] activationDerivatives[b];
                     }
                 }
             }
@@ -142,9 +182,14 @@ void NeuralNetwork::fit(Batch batch) {
             }
         }
 
+        for(int b=0; b<batch.size; b++) {
+            delete currentCostDerivatives[b];
+        }
         delete[] currentCostDerivatives;
         currentCostDerivatives = nextCostDerivatives;
     }
+
+    delete[] activationDerivatives;
 
     for(int i=0; i<getNbLayers(); i++) {
         for(int b=0; b<batch.size; b++) {

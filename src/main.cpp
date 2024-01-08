@@ -236,8 +236,8 @@ int main()
     int batchSize = 32;
 
     std::cout << "Fetching and transforming data..." << std::endl;
-    trainingSet = getDataset(false,160);
-    testSet = getDataset(true, 40);
+    trainingSet = getDataset(false,80);
+    testSet = getDataset(true, 20);
 
     float expectedResult[10][10];
     for(int i=0; i<10; i++) {
@@ -247,7 +247,6 @@ int main()
     }
 
     // TRAIN
-    std::cout << "Training..." << std::endl;
     for(int epoch=0; epoch<nbEpochs; epoch++) {
         std::cout << "Generating batches..." << std::endl;
         std::vector<Batch> batches = generateBatches(batchSize, trainingSet, expectedResult);
@@ -257,7 +256,11 @@ int main()
             exit(EXIT_FAILURE);
         }
 
+        std::cout << "Training..." << std::endl;
+        int b=0;
         for(auto &batch : batches) {
+            std::cout << "batch: " << b << std::endl;
+            b++;
             network->fit(batch);
         }
         removeBatches(batches);

@@ -141,7 +141,7 @@ Derivative :
 And:
 \begin{equation}
 \begin{split}
-    \frac{\partial s_{z_{k}}}{\partial z_{k\neq i}}  &= \frac{\partial \left(\frac{e^{z_i}}{\sum\limits_{j=1}^{n} e^{z_j}}\right)}{\partial z_{k\neq i}}\\
+    \frac{\partial s_{z_{i}}}{\partial z_{k\neq i}}  &= \frac{\partial \left(\frac{e^{z_i}}{\sum\limits_{j=1}^{n} e^{z_j}}\right)}{\partial z_{k\neq i}}\\
     &= e^{z_i}\frac{\partial \left(\frac{1}{c + e^{z_{k}}}\right)}{\partial z_{k\neq i}},\ \ \text{ where } c = \sum\limits_{j=1,\ j\neq k}^n e^{z_j}\\
     &= -e^{z_i}\frac{e^{z_k}}{(c+e^{z_{k}})^2}\\
     &= -\frac{e^{z_i}e^{z_k}}{\left(\left(\sum\limits_{j=1,\ j\neq k}^n e^{z_j}\right)+e^{z_{k}}\right)^2}\\
@@ -154,20 +154,12 @@ So we have :
 
 \begin{equation}
 \begin{split}
-\frac{\partial s_{z_k}}{\partial z_{i}} &= 
+\frac{\partial s_{z_i}}{\partial z_{k}} &= 
     \begin{cases}
        s_{z_i} (1 - s_{z_i}) &\text{ if } i=k\\
        -s_{z_i} s_{z_k} &\text{ else } \\
     \end{cases}\\
     &= s_{z_i}\left( \delta_{ik} - s_{z_k}\right)
-\end{split}
-\end{equation}
-
-And
-\begin{equation}
-\begin{split}
-    \frac{\partial E_i}{\partial z_k^{(n-1)}} &= \frac{\partial E_i}{\partial s_{z_i}} \frac{\partial s_{z_i}}{\partial z_k^{(n-1)}}\\
-    &= \left( s_{z_i} - \hat{y_i}\right) s_{z_i}\left( \delta_{ik} - s_{z_k} \right)
 \end{split}
 \end{equation}
 
@@ -178,7 +170,7 @@ Let :
     \item $C$ be the total cost function
     \item $y_i$ be the output (prediction) $i$
     \item $\hat{y_i}$ be the expected output $i$
-    \item $C_i$ be the cost for output $i$ (e.g. $\frac{1}{2}\left(\hat{y_i}-y_i\right)^2$
+    \item $C_i$ be the cost for output $i$ (e.g. MSE: $\frac{1}{2}\left(\hat{y_i}-y_i\right)^2$). In this document we use MSE, but for MNIST CCE (categorical cross-entropy) might be better (and we will use it in a future update)
     \item $w_{i,j}^{(l)}$ be the weight of the neuron $j$ of the layer $l-1$ for the neuron $i$ of the layer $l$
     \item $z_i^{(l)}$ be the weighted sum for the neuron $i$ of the layer $l$ (activation function input)
     \item $a_i^{(l)} = g^{(l)}(z_i^{(l)})$ be the output of the neuron $i$ of the layer $l$ (activation function output)
@@ -198,17 +190,17 @@ Here we consider that the activation function of the layer $L$ is Softmax $s$.
 
 
 \begin{equation*}
-    \frac{\partial C}{\partial w_{i,j}^{(L)}} = \frac{\partial C}{\partial a_i^{(L)}} \frac{\partial a_i^{(L)}}{\partial z_i^{(L)}} \frac{\partial z_i^{(L)}}{\partial w_{i,j}^{(L)}}
+    \frac{\partial C}{\partial w_{i,j}^{(L)}} = \sum\limits_{p=1}^{n_{L}}\frac{\partial C}{\partial a_p^{(L)}} \frac{\partial a_p^{(L)}}{\partial z_i^{(L)}} \frac{\partial z_i^{(L)}}{\partial w_{i,j}^{(L)}}
 \end{equation*}
 
 Where
 
 \begin{equation*}
-    \frac{\partial C}{\partial a_i^{(L)}} = \frac{\partial \frac{1}{n_{l}} \sum\limits_{k=1}^{n_{L}} C_k}{\partial a_i^{(L)}} = \frac{1}{n_{L}} \sum\limits_{k=1}^{n_{l}} \frac{\partial C_k}{\partial a_i^{(L)}} = \frac{1}{n_{L}}\frac{\partial C_i}{\partial a_i^{(L)}}
+    \frac{\partial C}{\partial a_p^{(L)}} = \frac{\partial \frac{1}{n_{l}} \sum\limits_{k=1}^{n_{L}} C_k}{\partial a_p^{(L)}} = \frac{1}{n_{L}} \sum\limits_{k=1}^{n_{l}} \frac{\partial C_k}{\partial a_p^{(L)}} = \frac{1}{n_{L}}\frac{\partial C_p}{\partial a_p^{(L)}}
 \end{equation*}
 
 \begin{equation*}
-    \frac{\partial a_i^{(L)}}{\partial z_i^{(L)}} = \frac{\partial s_{z_i^{(L)}}}{\partial z_i^{(L)}} = g'^{(L)}(z_i^{(L)})
+    \frac{\partial a_p^{(L)}}{\partial z_i^{(L)}} = \frac{\partial s_{z_p^{(L)}}}{\partial z_i^{(L)}}
 \end{equation*}
 
 \begin{equation*}
@@ -218,7 +210,7 @@ Where
 For the bias it's almost the same equation:
 
 \begin{equation*}
-    \frac{\partial C}{\partial b_i^{(L)}} = \frac{\partial C}{\partial a_i^{(L)}} \frac{\partial a_i^{(L)}}{\partial z_i^{(L)}} \frac{\partial z_i^{(L)}}{\partial b_i^{(L)}}
+    \frac{\partial C}{\partial b_i^{(L)}} = \sum\limits_{p=1}^{n_{L}}\frac{\partial C}{\partial a_p^{(L)}} \frac{\partial a_p^{(L)}}{\partial z_i^{(L)}} \frac{\partial z_i^{(L)}}{\partial b_i^{(L)}}
 \end{equation*}
 
 Where
@@ -250,7 +242,7 @@ Where
 
 
 \begin{equation*}
-    \frac{\partial C}{\partial a_i^{(L-1)}} = \sum\limits_{k=1}^{n_{L}}\frac{\partial C}{\partial a_k^{(L)}} \frac{\partial a_k^{(L)}}{\partial z_k^{(L)}} \frac{\partial z_k^{(L)}}{\partial a_i^{(L-1)}}
+    \frac{\partial C}{\partial a_i^{(L-1)}} = \sum\limits_{k=1}^{n_{L}}\sum\limits_{p=1}^{n_{L}}\frac{\partial C}{\partial a_k^{(L)}} \frac{\partial a_k^{(L)}}{\partial z_p^{(L)}} \frac{\partial z_p^{(L)}}{\partial a_i^{(L-1)}}
 \end{equation*}
 
 We already calculated the 2 first derivatives in the previous subsection, and for the last one:
@@ -259,16 +251,20 @@ We already calculated the 2 first derivatives in the previous subsection, and fo
     \frac{\partial z_k^{(L)}}{\partial a_i^{(L-1)}} = \frac{\partial \left( \sum\limits_{p=1}^{n_{L-1}} \left(w_{k,p}^{(L)} a_k^{(L-1)}\right) + b_k^{(L)}\right)}{\partial a_i^{(L-1)}} = \sum\limits_{p=1}^{n_{L-1}}\left( \frac{\partial w_{k,p}^{(L)} a_k^{(L-1)}}{\partial a_i^{(L-1)}}\right) + \frac{\partial b_k^{(L)}}{\partial a_i^{(L-1)}} = w_{k,i}^{(L)}
 \end{equation*}
 
+Also, we should notice here that for many activation functions (Sigmoid, ReLU...) $\frac{\partial a_k^{(l)}}{\partial a_p^{(l)}}$ will be equal to 0 if $p\neq k$, but not for functions such as Softmax.
+
 \subsection{Layer $l<L$}
 
+Here we have the general case, where the activation function can be softmax, sigmoid...
+
 \begin{equation*}
-    \frac{\partial C}{\partial w_{i,j}^{(l)}} = \frac{\partial C}{\partial a_i^{(l)}} \frac{\partial a_i^{(l)}}{\partial z_i^{(l)}} \frac{\partial z_i^{(l)}}{\partial w_{i,j}^{(l)}} = \frac{\partial C}{\partial a_i^{(l)}} g'^{(l)}(z_i^{(l)}) a_j^{(l-1)}
+    \frac{\partial C}{\partial w_{i,j}^{(l)}} = \left(\sum\limits_{k=1}^{n_{l}}\frac{\partial C}{\partial a_k^{(l)}} \frac{\partial a_k^{(l)}}{\partial z_i^{(l)}}\right) \frac{\partial z_i^{(l)}}{\partial w_{i,j}^{(l)}} = \left(\sum\limits_{k=1}^{n_{l}}\frac{\partial C}{\partial a_k^{(l)}} \frac{\partial a_k^{(l)}}{\partial z_i^{(l)}}\right) a_j^{(l-1)}
 \end{equation*}
 
 Where if $l<L$:
 
 \begin{equation*}
-    \frac{\partial C}{\partial a_i^{(l)}} = \sum\limits_{k=1}^{n_{l+1}}\frac{\partial C}{\partial a_k^{(l+1)}} \frac{\partial a_k^{(l+1)}}{\partial z_k^{(l+1)}} \frac{\partial z_k^{(l+1)}}{\partial a_i^{(l)}} = \sum\limits_{k=1}^{n_{l+1}}\frac{\partial C}{\partial a_k^{(l+1)}}g'^{(l+1)}(z_k^{(l+1)}) w_{k,i}^{(l+1)}
+    \frac{\partial C}{\partial a_i^{(l)}} = \sum\limits_{k=1}^{n_{l+1}}\sum\limits_{p=1}^{n_{l+1}}\frac{\partial C}{\partial a_k^{(l+1)}} \frac{\partial a_k^{(l+1)}}{\partial z_p^{(l+1)}} \frac{\partial z_p^{(l+1)}}{\partial a_i^{(l)}} = \sum\limits_{k=1}^{n_{l+1}}\sum\limits_{p=1}^{n_{l+1}}\frac{\partial C}{\partial a_k^{(l+1)}} \frac{\partial a_k^{(l+1)}}{\partial z_p^{(l+1)}} w_{p,i}^{(l+1)}
 \end{equation*}
 
 Otherwise if $l=L$:
@@ -280,6 +276,17 @@ Otherwise if $l=L$:
 \end{equation*}
 
 \subsection{Algorithm}
+
+Here we will calculate in each layer the following derivative (to propagate to the next layer):
+
+\begin{equation*}
+\begin{split}
+    \frac{\partial C}{\partial z_i^{(l)}} &= \sum\limits_{k=1}^{n_{l+1}}\sum\limits_{p=1}^{n_{l+1}}\sum\limits_{j=1}^{n_{l}}\frac{\partial C}{\partial a_k^{(l+1)}} \frac{\partial a_k^{(l+1)}}{\partial z_p^{(l+1)}} \frac{\partial z_p^{(l+1)}}{\partial a_j^{(l)}} \frac{\partial a_j^{(l)}}{\partial z_i^{(l)}}\\
+    &= \sum\limits_{k=1}^{n_{l+1}}\sum\limits_{p=1}^{n_{l+1}}\sum\limits_{j=1}^{n_{l}}\frac{\partial C}{\partial a_k^{(l+1)}} \frac{\partial a_k^{(l+1)}}{\partial z_p^{(l+1)}} w_{p,j}^{(l+1)}\frac{\partial a_j^{(l)}}{\partial z_i^{(l)}}\\
+    &= \sum\limits_{k=1}^{n_{l+1}}\sum\limits_{p=1}^{n_{l+1}}\left(\frac{\partial C}{\partial a_k^{(l+1)}} \frac{\partial a_k^{(l+1)}}{\partial z_p^{(l+1)}} \sum\limits_{j=1}^{n_{l}}\left(w_{p,j}^{(l+1)}\frac{\partial a_j^{(l)}}{\partial z_i^{(l)}}\right)\right)\\
+    &= \sum\limits_{p=1}^{n_{l}}\sum\limits_{j=1}^{n_{l}}\left(prevDerivatives \times w_{p,j}^{(l+1)}\frac{\partial a_j^{(l)}}{\partial z_i^{(l)}}\right)
+\end{split}
+\end{equation*}
 
 \textbf{Note}: This algorithm is not optimized, we should use the fact that we are using matrices.
 
@@ -304,12 +311,19 @@ for(i in range(len(layers)):
 \newpage
 \subsubsection{Step 2: Back-propagation}
 \begin{lstlisting}[language=Python]
-# dC/da_k * da_k/dz_k
-currentCostDerivatives = getCostDerivatives(outputs[len(layers)-1], expectedOutput) # vector of dC/da_k for all k
-activationDerivatives = getActivationDerivatives(len(layers)-1, weightedSums[getNbLayers()-1]); # vector of da_k/dz_k for all k
+# for all p,i dC/da_p * da_p/dz_i
 
+tempCostDerivatives = getCostDerivatives(outputs[len(layers)-1], expectedOutput) # vector of dC/da_j for all j
+
+activationDerivatives = getActivationDerivatives(len(layers)-1, weightedSums[getNbLayers()-1]) # matrix of da_j/dz_i for all j and all i
+ 
 for(i in range(getLayerSize(len(layers) - 1)):
-    currentCostDerivatives[i] *= (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[i];
+    if(isActivationFunctionMultidimensional(len(layers) - 1)):
+        currentCostDerivatives[i] = 0
+        for(j in range(getLayerSize(len(layers) - 1)):
+            currentCostDerivatives[i] += tempCostDerivatives[j] * (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[j][i]
+    else:
+        currentCostDerivatives[i] = tempCostDerivatives[i] * (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[0][i]
 
 
 for(l in range(len(layers)-1,-1,-1):
@@ -317,9 +331,17 @@ for(l in range(len(layers)-1,-1,-1):
     if l>0:
         nextCostDerivatives = []
         for(i in range(getLayerSize(l-1))):
-            nextCostDerivatives[i] = 0
-            for(k in range(getLayerSize(l))):
-                nextCostDerivatives[i] += currentCostDerivatives[k] * getWeight(l,k,i) # dC/da_k * da_k/dz_k * dz_k/da_i
+            nextCostDerivatives[i] = 0 # sum for all j,p,j dC/da_k * da_k/dz_p * dz_p/da_j * da_j/dz_i
+            
+            for(j in range(getLayerSize(l))):
+                activationDerivatives = getActivationDerivatives(l-1, weightedSums[l-1]) # matrix of da_j/dz_i for all j and all i
+
+                if(isActivationFunctionMultidimensional(l-1)):
+                    for(p in range(getLayerSize(l))):
+                        nextCostDerivatives[i] += currentCostDerivatives[p] * getWeight(l,p,j) * activationDerivatives[j][i]
+                else:
+                    nextCostDerivatives[i] += currentCostDerivatives[j] * getWeight(l,p,i) * activationDerivatives[0][i]
+                
 
     # Adjust the weights and biases of the current layer
 
@@ -327,8 +349,8 @@ for(l in range(len(layers)-1,-1,-1):
     
     for(i in range(getLayerSize(l))):
         for(j in range(len(prevLayerOutput)):
-            setWeight(l,i,j) -= lr * currentCostDerivatives[i] * prevLayerOutput[j] # lr = learning rate and we have dC/da_k * da_k/dz_k * dz_k/dw_i,j
-            setBias(l,i) -= lr * currentCostDerivatives[i] # dC/da_k * da_k/dz_k
+            setWeight(l,i,j) -= lr * currentCostDerivatives[i] * prevLayerOutput[j] # lr = learning rate and we have dC/dz_k * dz_i/dw_i,j
+            setBias(l,i) -= lr * currentCostDerivatives[i] # dC/dz_k
 
     currentCostDerivatives = nextCostDerivatives
    
@@ -363,14 +385,17 @@ for(i in range(len(layers)):
 \subsubsection{Step 2: Back-propagation}
 \begin{lstlisting}[language=Python]
 # dC/da_k * da_k/dz_k
-currentCostDerivatives = getCostDerivatives(outputs[len(layers)-1], expectedOutput, len(batch)) # Matrix of dC/da_k for all batch item and for all k
-activationDerivatives = getActivationDerivatives(len(layers)-1, weightedSums[getNbLayers()-1], len(batch)) # Matrix of da_k/dz_k for all batch item and for all k
-
+tempCostDerivatives = getCostDerivatives(outputs[len(layers)-1], expectedOutput, len(batch)) # Matrix of dC/da_j for all batch item and for all j
+activationDerivatives = getActivationDerivatives(len(layers)-1, weightedSums[getNbLayers()-1], len(batch)) # Tensor of order 3 of da_j/dz_i for all batch item and for all j,i
 
 for(b in range(len(batch))):
     for(i in range(getLayerSize(len(layers) - 1)):
-        currentCostDerivatives[b][i] *= (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[b][i];
-
+        if(isActivationFunctionMultidimensional(len(layers) - 1)):
+            currentCostDerivatives[b][i] = 0
+            for(j in range(getLayerSize(len(layers) - 1)):
+                currentCostDerivatives[i] += tempCostDerivatives[j] * (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[b][j][i]
+        else:
+            currentCostDerivatives[b][i] = tempCostDerivatives[i] * (1.0f/getLayerSize(len(layers) - 1) * activationDerivatives[b][0][i]
 
 for(l in range(len(layers)-1,-1,-1):
     # Next cost derivatives computation
@@ -379,9 +404,17 @@ for(l in range(len(layers)-1,-1,-1):
         for(b in range(len(batch))):
             nextCostDerivatives[b] = []
             for(i in range(getLayerSize(l-1))):
-                nextCostDerivatives[b][i] = 0
-                for(k in range(getLayerSize(l))):
-                    nextCostDerivatives[b][i] += currentCostDerivatives[b][k] * getWeight(l,k,i) # dC/da_k * da_k/dz_k * dz_k/da_i
+                nextCostDerivatives[b][i] = 0 # sum for all j,p,j dC/da_k * da_k/dz_p * dz_p/da_j * da_j/dz_i
+                
+                for(j in range(getLayerSize(l))):
+                    activationDerivatives = getActivationDerivatives(l-1, weightedSums[l-1]) # matrix of da_j/dz_i for all j and all i
+    
+                    if(isActivationFunctionMultidimensional(l-1)):
+                        for(p in range(getLayerSize(l))):
+                            nextCostDerivatives[b][i] += currentCostDerivatives[b][p] * getWeight(l,p,j) * activationDerivatives[j][i]
+                    else:
+                        nextCostDerivatives[b][i] += currentCostDerivatives[b][j] * getWeight(l,p,i) * activationDerivatives[0][i]
+                
 
     # Adjust the weights and biases of the current layer
 

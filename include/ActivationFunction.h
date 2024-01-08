@@ -6,7 +6,8 @@
 class ActivationFunction {
 public:
     virtual float* getValues(float* input, int size) = 0;
-    virtual float* getDerivatives(float* input, int size) = 0;
+    virtual float** getDerivatives(float* input, int size) = 0;
+    virtual bool isActivationFunctionMultiDim() = 0;
 };
 
 #endif

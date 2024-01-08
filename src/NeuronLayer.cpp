@@ -129,6 +129,10 @@ void NeuronLayer::setBias(int neuron, float newValue) {
     exit(EXIT_FAILURE);
 }
 
-float* NeuronLayer::getActivationDerivatives(float* input) {
+float** NeuronLayer::getActivationDerivatives(float* input) {
     return activationFunction->getDerivatives(input, getNbNeurons());
+}
+
+bool NeuronLayer::isActivationFunctionMultiDim() {
+    return activationFunction->isActivationFunctionMultiDim();
 }

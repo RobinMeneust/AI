@@ -38,7 +38,8 @@ public:
     void setWeight(int neuron, int prevNeuron, float newValue);
     float getBias(int neuron);
     void setBias(int neuron, float newValue);
-    float* getActivationDerivatives(float* input);
+    float** getActivationDerivatives(float* input);
+    bool isActivationFunctionMultiDim();
 };
 
 

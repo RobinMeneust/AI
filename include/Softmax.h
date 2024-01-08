@@ -9,8 +9,8 @@
 class Softmax : public ActivationFunction {
 public:
     float *getValues(float *input, int size);
-
-    float *getDerivatives(float *input, int size);
+    float **getDerivatives(float *input, int size);
+    bool isActivationFunctionMultiDim();
 
 private:
     float getMax(float *input, int size);

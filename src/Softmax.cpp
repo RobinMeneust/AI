@@ -36,10 +36,24 @@ float* Softmax::getValues(float* input, int size) {
     return output;
 }
 
-float* Softmax::getDerivatives(float* input, int size) {
-    float* output = getValues(input, size);
+float** Softmax::getDerivatives(float* input, int size) {
+    float** output = new float*[size];
+    float* temp = getValues(input, size);
     for(int i=0; i<size; i++) {
-        output[i] = output[i] * (1 - output[i]);
+        output[i] = new float[size];
+        for(int j=0; j<size; j++) {
+            if(i==j) {
+                output[i][j] = temp[i] * (1 - temp[i]);
+            } else {
+                output[i][j] = -temp[i]* temp[j];
+            }
+        }
     }
+    delete temp;
     return output;
+}
+
+
+bool Softmax::isActivationFunctionMultiDim() {
+    return true;
 }
