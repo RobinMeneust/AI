@@ -6,46 +6,44 @@
  */
 
 #include "../include/NeuronLayersList.h"
-#include <iostream>
 
-NeuronLayersList::NeuronLayersList() : capacity(10), nbLayers(0) {
-    this->layers = new NeuronLayer* [capacity];
-}
-
+/**
+ * Free memory space occupied by the neuron layers
+ */
 NeuronLayersList::~NeuronLayersList() {
-    for(int i=0; i<nbLayers; i++) {
+    for(int i=0; i<getNbLayers(); i++) {
         delete layers[i];
     }
-    delete [] layers;
+    layers.clear();
 }
 
-void NeuronLayersList::increaseCapacity(int increase) {
-    if(increase>0) {
-        NeuronLayer **newList = new NeuronLayer *[capacity + increase];
-        for (int i = 0; i < nbLayers; i++) {
-            newList[i] = layers[i];
-        }
-        delete[] layers;
-        layers = newList;
-    }
-}
-
+/**
+ * Add a neuron layer to the list of layers
+ * @param nbNeurons Number of neurons in the layer
+ * @param nbNeuronsPrevLayer Number of neurons of the previous layer (input size)
+ * @param activationFunction Activation function used (Softmax, Sigmoid...)
+ */
 void NeuronLayersList::add(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction) {
     NeuronLayer* newLayer = new NeuronLayer(nbNeurons, nbNeuronsPrevLayer, activationFunction);
-    if(capacity <= nbLayers) {
-        increaseCapacity(10+(capacity-nbLayers));
-    }
-    layers[nbLayers] = newLayer;
-    nbLayers++;
+    layers.push_back(newLayer);
 }
 
+/**
+ * Get the ith layer
+ * @param i Index of the layer to be fetched
+ * @return Layer at the ith index or nullptr if the index does not correspond to a layer
+ */
 NeuronLayer *NeuronLayersList::getLayer(int i) {
-    if(i<0 || i>=nbLayers) {
+    if(i<0 || i>=layers.size()) {
         return nullptr;
     }
     return layers[i];
 }
 
+/**
+ * Get the number of layers
+ * @return Number of layers
+ */
 int NeuronLayersList::getNbLayers() {
-    return nbLayers;
+    return layers.size();
 }

@@ -1,5 +1,5 @@
 /**
- * @file neuralNetwork.cpp
+ * @file NeuralNetwork.cpp
  * @author Robin MENEUST
  * @brief Functions used to manipulate neural networks
  * @date 2022-12-14
@@ -7,19 +7,34 @@
 
 #include "../include/neuralNetwork.h"
 #include <iostream>
-#include <cmath>
 #include <fstream>
 
+/**
+ * Default constructor for the neural network
+ * @param inputSize Size of the input vector
+ */
 NeuralNetwork::NeuralNetwork(int inputSize) : inputSize(inputSize), learningRate(0.1), layers(new NeuronLayersList()) {}
 
+/**
+ * Free memory space occupied by the neural network layers
+ */
 NeuralNetwork::~NeuralNetwork() {
     delete layers;
 }
 
+/**
+ * Get the number of neuron layers of this network
+ * @return Number of layers
+ */
 int NeuralNetwork::getNbLayers() {
     return layers->getNbLayers();
 }
 
+/**
+ * Add a layer to the network
+ * @param nbNeurons Number of neurons in the added layer
+ * @param activationFunction Activation function of the added layer (Softmax, Sigmoid...)
+ */
 void NeuralNetwork::addLayer(int nbNeurons, ActivationFunction *activationFunction) {
     int nbLayers = getNbLayers();
     NeuronLayer* prevLayer = layers->getLayer(nbLayers-1);
@@ -31,25 +46,18 @@ void NeuralNetwork::addLayer(int nbNeurons, ActivationFunction *activationFuncti
     }
 }
 
+/**
+ * Get the output of the neural network for the given input
+ * @param inputArray Input vector
+ * @return Output vector
+ */
 float *NeuralNetwork::evaluate(float *inputArray) {
     float* output = inputArray;
     bool isFirstIter = true;
     float* newOutput = nullptr;
-    int nanLayer = -1;
-
-    for(int j=0; j<layers->getLayer(0)->getNbNeuronsPrevLayer(); j++) {
-        if(std::isnan(output[j])) {
-            nanLayer = INT_MAX;
-        }
-    }
 
     for(int i=0; i<getNbLayers(); i++) {
         newOutput = layers->getLayer(i)->getOutput(output);
-        for(int j=0; j<layers->getLayer(i)->getNbNeurons(); j++) {
-            if(nanLayer == -1 && std::isnan(newOutput[i])) {
-                nanLayer = i;
-            }
-        }
         if (isFirstIter)
             isFirstIter = false;
         else
@@ -59,6 +67,10 @@ float *NeuralNetwork::evaluate(float *inputArray) {
     return output;
 }
 
+/**
+ * Train the network with the given batch of instances
+ * @param batch Batch of instances (input data + target output)
+ */
 void NeuralNetwork::fit(Batch batch) {
     if(batch.size<=0) {
         std::cerr << "WARNING: the batch size is null" << std::endl;
@@ -181,18 +193,22 @@ void NeuralNetwork::fit(Batch batch) {
 
 /**
  * Calculate the derivative d MSE / d prediction[i] for all i
- * @param prediction
- * @param expectedResult
- * @return
+ * @param prediction Output of the neural network
+ * @param expectedResult Target output
+ * @return Derivative of the cost for all the components of the output vector
  */
 float* NeuralNetwork::getCostDerivatives(float* prediction, float* expectedResult) {
-    float* lossDerivative = new float[10]; // The size should be given in the parameters instead of being hard coded
-    for(int i=0; i<10; i++) {
+    float* lossDerivative = new float[layers->getLayer(getNbLayers()-1)->getNbNeurons()]; // The size should be given in the parameters instead of being hard coded
+    for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
         lossDerivative[i] = prediction[i]-expectedResult[i];
     }
     return lossDerivative;
 }
 
+/**
+ * Set the learning rate
+ * @param newValue New learning rate value
+ */
 void NeuralNetwork::setLearningRate(float newValue) {
     if(newValue<=0) {
         std::cerr << "ERROR: Learning rate can't be negative or null" << std::endl;
@@ -201,6 +217,10 @@ void NeuralNetwork::setLearningRate(float newValue) {
     learningRate = newValue;
 }
 
+/**
+ * Save the current network in a file. For now it's use for debug purposes only. The save file can't be loaded.
+ * @param fileName Name of the file where the network should be saved
+ */
 void NeuralNetwork::save(std::string fileName) {
     std::ofstream out(fileName);
 
@@ -223,4 +243,34 @@ void NeuralNetwork::save(std::string fileName) {
     out.close();
 }
 
+/**
+ * Predict the label of the given input
+ * @param intensityArray Input vector
+ * @return Label of the input vector: number between 0 and the size of the last layer - 1, depending on which component of the output was the highest
+ */
+int NeuralNetwork::predict(float* intensityArray) {
+    float* output = evaluate(intensityArray);
+    int i_max = 0;
+    for(int i=1; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
+        if(output[i] > output[i_max])
+            i_max = i;
+    }
+    delete[] output;
+    return i_max;
+}
 
+/**
+ * Get the accuracy of this model for the given test set
+ * @param testSet Test set: list of instances (input and target output)
+ * @return Accuracy (between 0 and 1)
+ */
+
+float NeuralNetwork::getAccuracy(std::vector<Instance> testSet) {
+    int validPredictions = 0;
+    for(int i=0; i<testSet.size(); i++) {
+        if (predict(testSet[i].data) == testSet[i].label) {
+            validPredictions++;
+        }
+    }
+    return ((float)validPredictions/(float)testSet.size());
+}

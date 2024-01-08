@@ -1,12 +1,21 @@
-//
-// Created by robin on 15/12/2023.
-//
+/**
+ * @file Softmax.cpp
+ * @author Robin MENEUST
+ * @brief Methods of the class Softmax used by a neuron layer. This class defines both the Softmax function and its derivatives
+ * @date 2023-12-15
+ */
 
 #include "../include/Softmax.h"
 #include <cmath>
 #include <iostream>
 
-float getAbsMax(float* input, int size) {
+/**
+ * Get the max of abs(xi) for all xi in the input vector. Used to normalized the input of Softmax to avoid overflow
+ * @param input Input vector
+ * @param size Size of the input vector
+ * @return Max of the absolute values
+ */
+float Softmax::getAbsMax(float* input, int size) {
     float max = input[0];
     for(int i=1; i<size; i++) {
         float absVal = input[i] < 0 ? -input[i] : input[i];
@@ -17,6 +26,12 @@ float getAbsMax(float* input, int size) {
     return max;
 }
 
+/**
+ * For all component xi of the input vector, calculate Softmax(xi) and return a vector that contains the result for each xi
+ * @param input Input vector
+ * @param size Size of the input vector
+ * @return Vector of the output of the function for each component of the input vector
+ */
 float* Softmax::getValues(float* input, int size) {
     // Used to avoid overflow. The output doesn't change because e^(a*x) / (sum e^(a*x)) = (e^a * e^x) / (e^a * sum e^x) = e^x / (sum e^x)
     // We take 40 because exp(40) < 10^18 < 10^38 = float max value. So, if we have less than 10^20 neurons for the layer then we won't get an overflow
@@ -39,6 +54,12 @@ float* Softmax::getValues(float* input, int size) {
     return output;
 }
 
+/**
+ * For all component xi of the input vector, calculate the derivative dSoftmax(xi)/dxi and return a vector that contains the result for each xi. Note here that we don't consider dSoftmax(xi)/dxk i != k to avoid increasing drastically the training time (it might not be a good practice)
+ * @param input Input vector
+ * @param size Size of the input vector
+ * @return Vector of the derivative of the function for each component of the input vector
+ */
 float* Softmax::getDerivatives(float* input, int size) {
     float* output = getValues(input, size);
     for(int i=0; i<size; i++) {

@@ -1,29 +1,31 @@
 /**
  * @file main.cpp
  * @author Robin MENEUST
- * @brief Neural Network Test Project
+ * @brief Neural Network project from scratch for handwritten numbers image recognition (MNIST dataset)
  * @date 2022-12-14
  */
 
 #include <iostream>
-#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <vector>
 #include "../include/neuralNetwork.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <random>
-#include "../include/Sigmoid.h"
 #include "../include/Softmax.h"
-#include "../include/Relu.h"
 #include "../include/LeakyRelu.h"
-#include "../include/Batch.h"
 #include "../include/Instance.h"
 
 using namespace cv;
+
+/**
+ * Load an image from its filename
+ * Stop the program if the file is not valid (no image data)
+ * @param filename Name of the image file
+ * @return OpenCV matrix representing the image
+ */
 
 Mat loadImage(std::string filename) {
     Mat image = imread(filename);
@@ -34,62 +36,64 @@ Mat loadImage(std::string filename) {
     return image;
 }
 
+/**
+ * Create a neural network with pre-defined parameters
+ * @return Pointer to the neural network created
+ */
+
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork(28*28);
 //    network->addLayer(32, new Sigmoid());
     network->addLayer(512, new LeakyRelu());
     network->addLayer(10, new Softmax());
-//    network->setLearningRate(0.03f);
     network->setLearningRate(0.03f);
 
     return network;
 }
 
-int predict(NeuralNetwork* network, float intensityArray[26*26]) { // should not be hardcoded (the dimensions should be editable
-    float* output = network->evaluate(intensityArray);
-    int i_max = 0;
-    for(int i=1; i<10; i++) {
-        if(output[i] > output[i_max])
-            i_max = i;
-    }
-    delete[] output;
-    return i_max;
-}
+// WILL BE MOVED TO ANOTHER FILE: will be a layer (the Conv2D layer)
+//Mat conv2D(Mat input, int kernelWidth) {
+//    std::cout << "nrows: " << input.rows << " ncols: " << input.cols << std::endl;
+//    std::srand(std::time(nullptr));
+//
+//    int resultWidth = input.cols-kernelWidth+1;
+//    int resultHeight = input.rows-kernelWidth+1;
+//
+//    float* resultArray = new float[resultWidth*resultHeight];
+//    float kernel[kernelWidth][kernelWidth];
+//    for(int x=0; x<kernelWidth; x++) {
+//        for(int y=0; y<kernelWidth; y++) {
+//            kernel[x][y] = ((float) (rand() % 11) / 5.0f) -1.0f;
+//        }
+//    }
+//
+//    int k = 0;
+//    for(int x=0; x<input.cols-kernelWidth+1; x++) {
+//        for(int y=0; y<input.rows-kernelWidth+1; y++) {
+////            std::cout << "x " << x << " y " << y << std::endl;
+//            resultArray[k] = 0.0f;
+//            for(int i=0; i<kernelWidth; i++) {
+//                for(int j=0; j<kernelWidth; j++) {
+//                    if(x==16) {
+////                        std::cout << "k " << k << " i " <<i << " j " << j << " x+i " << x+i << " y+j " << y+j << " : " << input.at<Vec3b>(x + i, y + j)[0] << std::endl;
+//                    }
+//                    resultArray[k] += input.at<Vec3b>(x + i, y + j)[0] * kernel[i][j];
+//                }
+//            }
+//            k++;
+//        }
+//    }
+//    return Mat(resultWidth,resultHeight,CV_32FC1,resultArray);
+//}
 
-Mat conv2D(Mat input, int kernelWidth) {
-    std::cout << "nrows: " << input.rows << " ncols: " << input.cols << std::endl;
-    std::srand(std::time(nullptr));
-
-    int resultWidth = input.cols-kernelWidth+1;
-    int resultHeight = input.rows-kernelWidth+1;
-
-    float* resultArray = new float[resultWidth*resultHeight];
-    float kernel[kernelWidth][kernelWidth];
-    for(int x=0; x<kernelWidth; x++) {
-        for(int y=0; y<kernelWidth; y++) {
-            kernel[x][y] = ((float) (rand() % 11) / 5.0f) -1.0f;
-        }
-    }
-
-    int k = 0;
-    for(int x=0; x<input.cols-kernelWidth+1; x++) {
-        for(int y=0; y<input.rows-kernelWidth+1; y++) {
-//            std::cout << "x " << x << " y " << y << std::endl;
-            resultArray[k] = 0.0f;
-            for(int i=0; i<kernelWidth; i++) {
-                for(int j=0; j<kernelWidth; j++) {
-                    if(x==16) {
-//                        std::cout << "k " << k << " i " <<i << " j " << j << " x+i " << x+i << " y+j " << y+j << " : " << input.at<Vec3b>(x + i, y + j)[0] << std::endl;
-                    }
-                    resultArray[k] += input.at<Vec3b>(x + i, y + j)[0] * kernel[i][j];
-                }
-            }
-            k++;
-        }
-    }
-    return Mat(resultWidth,resultHeight,CV_32FC1,resultArray);
-}
-
+// WILL BE MOVED TO ANOTHER CLASS (will be a layer: the flatten layer)
+/**
+ * Flatten the given matrix to a 1D array
+ * @param matrix Matrix that will be flattened
+ * @param width Width of the matrix
+ * @param height Height of the matrix
+ * @return Flattened matrix
+ */
 float* flatten(Mat matrix, int width, int height) {
     float* flattenArray = new float[width*height];
 
@@ -103,10 +107,15 @@ float* flatten(Mat matrix, int width, int height) {
     return flattenArray;
 }
 
-
-std::vector<Instance> getDataset(bool isTestSet, int maxNbExamplesPerClass) {
+/**
+ * Get a list of instances (instance data and label) by getting the list of dataset files and normalizing their data
+ * @param isTestSet If true we look into the folder test/ otherwise it's train/
+ * @param maxNbInstancesPerClass Max number of instances per class
+ * @return List of instances
+ */
+std::vector<Instance> getDataset(bool isTestSet, int maxNbInstancesPerClass) {
     std::vector<Instance> instances;
-    if(maxNbExamplesPerClass<1) {
+    if(maxNbInstancesPerClass<1) {
         std::cerr << "Invalid value for maxNbExamples must be greater or equal to 1" << std::endl;
         return instances;
     }
@@ -132,7 +141,7 @@ std::vector<Instance> getDataset(bool isTestSet, int maxNbExamplesPerClass) {
             instance.data = flatten(normalizedImage, 28, 28); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
             instance.label = i;
             instances.push_back(instance);
-            if(j>=maxNbExamplesPerClass)
+            if(j>=maxNbInstancesPerClass)
                 break;
         }
     }
@@ -140,19 +149,22 @@ std::vector<Instance> getDataset(bool isTestSet, int maxNbExamplesPerClass) {
     return instances;
 }
 
+/**
+ * Get a list of instances (instance data and label) by getting the list of ALL the dataset files and normalizing their data
+ * @param isTestSet If true we look into the folder test/ otherwise it's train/
+ * @return List of instances
+ */
 std::vector<Instance> getDataset(bool isTestSet) {
     return getDataset(isTestSet, INT32_MAX);
 }
 
 /**
- *
- * @param batchSize
- * @param datasetFiles Array of 10 elements: one per digit (0...9). Its elements are vectors of inputs corresponding to this digit
- * @param datasetSize
- * @param targets
- * @return
+ * Generate batches from the dataset instances and the target outputs
+ * @param batchSize Number of instance per batch
+ * @param dataset List of instances (label + data)
+ * @param targets Array containing the one hot representation of the target outputs per class
+ * @return List of batches generated
  */
-
 std::vector<Batch> generateBatches(int batchSize, std::vector<Instance> dataset, float targets[10][10]) {
     //TODO: This function is too slow and we repeat the transformation several times on data that have already been transformed
     auto seed = (unsigned) time(nullptr);
@@ -179,6 +191,10 @@ std::vector<Batch> generateBatches(int batchSize, std::vector<Instance> dataset,
     return batches;
 }
 
+/**
+ * Free the memory of the data in the batches (only the input field, not the target vector since it's shared between batches and epochs)
+ * @param batches Batch to be deleted (a batch contain input data and target output)
+ */
 void removeBatches(std::vector<Batch> batches) {
     for(auto & batch : batches) {
         delete[] batch.input;
@@ -186,24 +202,11 @@ void removeBatches(std::vector<Batch> batches) {
     batches.clear();
 }
 
-float getAccuracy(NeuralNetwork* network, std::vector<Instance> testSet) {
-    int validPredictions = 0;
-    for(int i=0; i<testSet.size(); i++) {
-        if (predict(network, testSet[i].data) == testSet[i].label) {
-            validPredictions++;
-        }
-    }
-
-    return ((float)validPredictions/(float)testSet.size());
-}
 
 /**
  * @brief Main function
- * @param argc Number of arguments
- * @param argv Array of arguments
  * @return Returns 0 if it ends correctly
  */
-
 
 int main()
 {
@@ -219,8 +222,6 @@ int main()
     std::cout << "Fetching and transforming data..." << std::endl;
     trainingSet = getDataset(false,300);
     testSet = getDataset(true, 50);
-//    trainingSet = getDataset(false,300);
-//    testSet = getDataset(true, 100);
 
     float expectedResult[10][10];
     for(int i=0; i<10; i++) {
@@ -245,12 +246,11 @@ int main()
             network->fit(batch);
         }
         removeBatches(batches);
-        std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << getAccuracy(network, testSet) << std::endl;
+        std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(testSet) << std::endl;
     }
     std::cout << "training done" << std::endl;
 
-
-    // TODO: delete instances and create an Instance class instead of enum to simplify the destruction process
+    // TODO: delete instances (we have a memory leak here) and create an Instance class instead of enum to simplify the destruction process
 
     delete network;
 

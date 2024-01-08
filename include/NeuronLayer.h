@@ -1,5 +1,5 @@
 /**
- * @file neuronLayer.h
+ * @file NeuronLayer.h
  * @author Robin MENEUST
  * @brief Functions prototypes and class definitions of neuronLayer.cpp
  * @date 2022-12-14
@@ -18,14 +18,13 @@
 
 class NeuronLayer {
 private:
-    int nbNeurons;
-    int nbNeuronsPrevLayer;
-    float** weights;
-    float* biases;
-    ActivationFunction* activationFunction;
+    int nbNeurons; /**< Number of neurons in this layer */
+    int nbNeuronsPrevLayer; /**< Number of neurons in the previous layer */
+    float** weights; /**< Matrix of all the weight of this layer */
+    float* biases; /**< List of all the biases of this layer */
+    ActivationFunction* activationFunction; /**< Activation function of this layer */
 
 public:
-    NeuronLayer();
     NeuronLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction);
     NeuronLayer(NeuronLayer const& copy);
     ~NeuronLayer();

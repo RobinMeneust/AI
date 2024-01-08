@@ -1,6 +1,13 @@
+# AI Project
+
+## Description
+
+AI model from scratch in C++ for image classification (MNIST dataset)
+
 ## Install dependencies
 
 - OpenCV
+- Doxygen (only to generate the documentation)
 
 ## Build
 `cmake -S . -B build -G "Unix Makefiles"`
@@ -26,7 +33,7 @@ Accuracy: **87 %**
 
 - **nbEpochs** = 11
 - **batchSize** = 64
-- **maxNbExamplesPerClass** 
+- **maxNbInstancesPerClass** 
   - training set: 6000
   - test set: 1000
 - Network
@@ -43,3 +50,12 @@ Accuracy: **87 %**
 3. Confusion matrix
 4. Accuracy graph
 5. More loss functions
+
+## Doc
+
+1. Run in the project root folder: `doxygen`
+2. Open the doc folder and either open the LaTeX version or the HTML one (the index.html file)
+
+## Author
+
+Robin Meneust
