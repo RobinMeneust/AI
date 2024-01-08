@@ -217,10 +217,10 @@ int main()
     int batchSize = 64;
 
     std::cout << "Fetching and transforming data..." << std::endl;
-//    trainingSet = getDataset(false,6000);
-//    testSet = getDataset(true, 1000);
-    trainingSet = getDataset(false,300);
-    testSet = getDataset(true, 100);
+    trainingSet = getDataset(false,6000);
+    testSet = getDataset(true, 1000);
+//    trainingSet = getDataset(false,300);
+//    testSet = getDataset(true, 100);
 
     float expectedResult[10][10];
     for(int i=0; i<10; i++) {

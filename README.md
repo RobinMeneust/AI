@@ -20,10 +20,26 @@ Run the executable file in build/bin/
 
 [PDF](pdf/AI_Project.pdf)
 
+## Example
+
+Accuracy: **87 %**
+
+- **nbEpochs** = 11
+- **batchSize** = 64
+- **maxNbExamplesPerClass** 
+  - training set: 6000
+  - test set: 1000
+- Network
+  - **Input**: 28*28
+  - **Layers**
+    - Dense (512) LeakyRelu
+    - Dense (10) Softmax
+  - **Learning rate**: 0.03
+
 ## TODO
 
-- Conv2D and Max-pooling layers
-- Improve performance: add an option to use GPU with CUDA to increase the training speed
-- Confusion matrix
-- Accuracy graph
-- More loss functions
+1. Improve performance: add an option to use GPU with CUDA to increase the training speed
+2. Conv2D and Max-pooling layers
+3. Confusion matrix
+4. Accuracy graph
+5. More loss functions
