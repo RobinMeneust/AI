@@ -10,9 +10,9 @@
 
 #include <string>
 #include <vector>
-#include "NeuronLayer.h"
+#include "DenseLayer.h"
 #include "ActivationFunction.h"
-#include "NeuronLayersList.h"
+#include "LayersList.h"
 #include "../include/Batch.h"
 #include "Instance.h"
 
@@ -26,19 +26,20 @@ class NeuralNetwork {
 private:
     int inputSize; /**< Size of the input */
     float learningRate; /**< Learning rate */
-    NeuronLayersList* layers; /**< List of the layers */
+    LayersList* layers; /**< List of the layers */
 
 public:
     NeuralNetwork(int nbNeuronsInputLayer);
     ~NeuralNetwork();
     int getNbLayers();
     void addLayer(int nbNeurons, ActivationFunction* activationFunction);
-    float* evaluate(float* inputArray);
-	void fit(Batch batch);
-    float* getCostDerivatives(float* prediction, float* expectedResult);
+    float* evaluate(Tensor input);
+    Tensor** getNextCostDerivatives(Tensor** currentCostDerivatives, Tensor** weightedSumsPrevLayer, int layerIndex, int batchSize);
+    void fit(Batch batch);
+    Tensor* getCostDerivatives(const Tensor &prediction, float* expectedResult);
     void setLearningRate(float newValue);
-    void save(std::string fileName);
-    int predict(float* intensityArray);
+//    void save(std::string fileName);
+    int predict(Tensor input);
     float getAccuracy(std::vector<Instance> testSet);
 };
 

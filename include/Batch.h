@@ -11,12 +11,12 @@
 //TODO: create a class Batch instead (with a destructor)
 
 /**
- * Structure to represent a batch: a group of instances defined as: (inputVector, targetOutputVector)
+ * Structure to represent a batch: a group of instances defined as: (inputTensor, targetOutputVector)
  */
 
 typedef struct Batch {
-    float** input; /**< List of (size) input vector (data fed to the neural network) */
-    float** target; /**< List of (size) target output vector (data compared to the output of the neural network that was fed with the input vector): one hot representation of the label */
+    Tensor* input; /**< List of (size) input tensors (data fed to the neural network) */
+    float** target; /**< List of (size) target output tensors (data compared to the output of the neural network that was fed with the input vector): one hot representation of the label */
     int size; /**< Size of the batch (number of instances) */
 } Batch;
 

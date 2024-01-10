@@ -1,16 +1,17 @@
 /**
- * @file NeuronLayersList.cpp
+ * @file LayersList.cpp
  * @author Robin MENEUST
  * @brief Functions used to manipulate neuron layers lists
  * @date 2023-12-15
  */
 
-#include "../include/NeuronLayersList.h"
+#include "../include/LayersList.h"
+#include "../include/DenseLayer.h"
 
 /**
  * Free memory space occupied by the neuron layers
  */
-NeuronLayersList::~NeuronLayersList() {
+LayersList::~LayersList() {
     for(int i=0; i<getNbLayers(); i++) {
         delete layers[i];
     }
@@ -23,8 +24,8 @@ NeuronLayersList::~NeuronLayersList() {
  * @param nbNeuronsPrevLayer Number of neurons of the previous layer (input size)
  * @param activationFunction Activation function used (Softmax, Sigmoid...)
  */
-void NeuronLayersList::add(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction) {
-    NeuronLayer* newLayer = new NeuronLayer(nbNeurons, nbNeuronsPrevLayer, activationFunction);
+void LayersList::add(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction) {
+    Layer* newLayer = new DenseLayer(nbNeurons, nbNeuronsPrevLayer, activationFunction);//TODO: Select type depending on params
     layers.push_back(newLayer);
 }
 
@@ -33,7 +34,7 @@ void NeuronLayersList::add(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunc
  * @param i Index of the layer to be fetched
  * @return Layer at the ith index or nullptr if the index does not correspond to a layer
  */
-NeuronLayer *NeuronLayersList::getLayer(int i) {
+Layer *LayersList::getLayer(int i) {
     if(i<0 || i>=layers.size()) {
         return nullptr;
     }
@@ -44,6 +45,6 @@ NeuronLayer *NeuronLayersList::getLayer(int i) {
  * Get the number of layers
  * @return Number of layers
  */
-int NeuronLayersList::getNbLayers() {
+int LayersList::getNbLayers() {
     return layers.size();
 }

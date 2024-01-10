@@ -11,14 +11,14 @@
 /**
  * For all component xi of the input vector, calculate Relu(xi) and return a vector that contains the result for each xi
  * @param input Input vector
- * @param size Size of the input vector
  * @return Vector of the output of the function for each component of the input vector
  */
 
-float* Relu::getValues(float* input, int size) {
-    float* output = new float[size];
-    for(int i=0; i<size; i++) {
-        output[i] = input[i] <= 0 ? 0 : input[i];
+Tensor* Relu::getValues(Tensor input) {
+    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
+    for(int i=0; i<input.getDimSizes()[0]; i++) {
+        float inputValue = input.get({i});
+        output->set({i}, inputValue <= 0 ? 0 : inputValue);
     }
     return output;
 }
@@ -30,10 +30,10 @@ float* Relu::getValues(float* input, int size) {
  * @return Vector of the derivative of the function for each component of the input vector
  */
 
-float* Relu::getDerivatives(float* input, int size) {
-    float* output = getValues(input, size);
-    for(int i=0; i<size; i++) {
-        output[i] = input[i] <= 0 ? 0 : 1;
+Tensor* Relu::getDerivatives(Tensor input) {
+    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
+    for(int i=0; i<input.getDimSizes()[0]; i++) {
+        output->set({i}, input.get({i}) <= 0 ? 0 : 1);
     }
     return output;
 }

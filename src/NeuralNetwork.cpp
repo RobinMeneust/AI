@@ -13,7 +13,7 @@
  * Default constructor for the neural network
  * @param inputSize Size of the input vector
  */
-NeuralNetwork::NeuralNetwork(int inputSize) : inputSize(inputSize), learningRate(0.1), layers(new NeuronLayersList()) {}
+NeuralNetwork::NeuralNetwork(int inputSize) : inputSize(inputSize), learningRate(0.1), layers(new LayersList()) {}
 
 /**
  * Free memory space occupied by the neural network layers
@@ -37,34 +37,61 @@ int NeuralNetwork::getNbLayers() {
  */
 void NeuralNetwork::addLayer(int nbNeurons, ActivationFunction *activationFunction) {
     int nbLayers = getNbLayers();
-    NeuronLayer* prevLayer = layers->getLayer(nbLayers-1);
+    Layer* prevLayer = layers->getLayer(nbLayers - 1);
     if(prevLayer == nullptr) {
         // It's the first layer added
         layers->add(nbNeurons, inputSize, activationFunction);
     } else {
-        layers->add(nbNeurons, prevLayer->getNbNeurons(), activationFunction);
+        layers->add(nbNeurons, prevLayer->getOutputSize(0), activationFunction);
     }
 }
 
 /**
  * Get the output of the neural network for the given input
- * @param inputArray Input vector
+ * @param input Input vector
  * @return Output vector
  */
-float *NeuralNetwork::evaluate(float *inputArray) {
-    float* output = inputArray;
+float *NeuralNetwork::evaluate(Tensor input) {
+    Tensor* output = new Tensor(1, {1}, input.getData());
     bool isFirstIter = true;
-    float* newOutput = nullptr;
+    Tensor* newOutput = nullptr;
 
     for(int i=0; i<getNbLayers(); i++) {
-        newOutput = layers->getLayer(i)->getOutput(output);
+        newOutput = layers->getLayer(i)->getOutput(*output);
         if (isFirstIter)
             isFirstIter = false;
         else
             delete output;
         output = newOutput;
     }
-    return output;
+    return output->getData();
+}
+
+/**
+ * Calculate the derivatives dC/dz_i, where z_i is the output i of the layer (layerIndex - 1), for all i, for all the batch
+ * @param currentCostDerivatives dC/dz_i, where z_i is the output i of the layer (layerIndex),
+ * @param weightedSumsPrevLayer Weighted sums of the layer (layerIndex - 1)
+ * @param layerIndex Index of the current layer (where currentCostDerivatives is used to adjust the weights and biases)
+ * @param batchSize Number of instances in the batch of instances sent to the first layer of the network
+ * @return Derivatives of the total cost in respect for the output of the layer (layerIndex - 1)
+ */
+Tensor** NeuralNetwork::getNextCostDerivatives(Tensor** currentCostDerivatives, Tensor** weightedSumsPrevLayer, int layerIndex, int batchSize) {
+    Tensor** nextCostDerivatives = new Tensor*[batchSize];
+
+    for(int b=0; b<batchSize; b++) {
+        Tensor* nextActivationDerivatives = layers->getLayer(layerIndex-1)->getActivationDerivatives(*weightedSumsPrevLayer[b]);
+        nextCostDerivatives[b] = new Tensor(1,{layers->getLayer(layerIndex-1)->getOutputSize(0)});
+        for (int i = 0; i < layers->getLayer(layerIndex - 1)->getOutputSize(0); i++) {
+            nextCostDerivatives[b]->set({i}, 0.0f);
+            for (int k = 0; k < layers->getLayer(layerIndex)->getOutputSize(0); k++) {
+                //TODO: optimize
+                nextCostDerivatives[b]->set({i}, nextCostDerivatives[b]->get({i}) + currentCostDerivatives[b]->get({0}) * layers->getLayer(layerIndex)->getPreActivationDerivatives(k,i)->get({0}) * nextActivationDerivatives->get({i})); // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+            }
+        }
+        delete nextActivationDerivatives;
+    }
+
+    return nextCostDerivatives;
 }
 
 /**
@@ -77,41 +104,41 @@ void NeuralNetwork::fit(Batch batch) {
         return;
     }
 
-    float*** weightedSums = new float**[getNbLayers()];
-    float*** outputs = new float**[getNbLayers()];
+    Tensor*** weightedSums = new Tensor**[getNbLayers()];
+    Tensor*** outputs = new Tensor**[getNbLayers()];
 
     for(int i=0; i<getNbLayers(); i++) {
-        weightedSums[i] = new float*[batch.size];
-        outputs[i] = new float*[batch.size];
+        weightedSums[i] = new Tensor*[batch.size];
+        outputs[i] = new Tensor*[batch.size];
     }
 
     for(int b=0; b<batch.size; b++) {
-        weightedSums[0][b] = layers->getLayer(0)->getWeightedSums(batch.input[b]);
+        weightedSums[0][b] = layers->getLayer(0)->getPreActivationValues(batch.input[b]);
     }
 
-    outputs[0] = new float*[batch.size];
     for(int b=0; b<batch.size; b++) {
-        outputs[0][b] = layers->getLayer(0)->getActivationValues(weightedSums[0][b]);
+        outputs[0][b] = layers->getLayer(0)->getActivationValues(*weightedSums[0][b]);
     }
 
     for(int i=1; i<getNbLayers(); i++) {
         for(int b=0; b<batch.size; b++) {
-            weightedSums[i][b] = layers->getLayer(i)->getWeightedSums(outputs[i-1][b]);
-            outputs[i][b] = layers->getLayer(i)->getActivationValues(weightedSums[i][b]);
+            weightedSums[i][b] = layers->getLayer(i)->getPreActivationValues(*outputs[i-1][b]);
+            outputs[i][b] = layers->getLayer(i)->getActivationValues(*weightedSums[i][b]);
         }
     }
 
     // dC/da_k * da_k/dz_k
-    float** currentCostDerivatives = new float*[batch.size];
+    Tensor** currentCostDerivatives = new Tensor*[batch.size];
     for(int b=0; b<batch.size; b++) {
-        currentCostDerivatives[b] = getCostDerivatives(outputs[getNbLayers()-1][b], batch.target[b]); // dC/da_k
+        currentCostDerivatives[b] = getCostDerivatives(*outputs[getNbLayers()-1][b], batch.target[b]); // dC/da_k
     }
 
-    float** activationDerivatives = new float*[batch.size];
+    Tensor** activationDerivatives = new Tensor*[batch.size];
     for(int b=0; b<batch.size; b++) {
-        activationDerivatives[b] = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(weightedSums[getNbLayers()-1][b]);
-        for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
-            currentCostDerivatives[b][i] *= (1.0f/layers->getLayer(getNbLayers()-1)->getNbNeurons()) * activationDerivatives[b][i];
+        activationDerivatives[b] = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(*weightedSums[getNbLayers()-1][b]);
+        for(int i=0; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
+            //TODO: optimize
+            currentCostDerivatives[b]->set({i}, currentCostDerivatives[b]->get({i}) * (1.0f/layers->getLayer(getNbLayers()-1)->getOutputSize(0)) * activationDerivatives[b]->get({i}));
         }
     }
 
@@ -121,58 +148,17 @@ void NeuralNetwork::fit(Batch batch) {
 
     delete[] activationDerivatives;
 
-    float** nextCostDerivatives = nullptr;
+    Tensor** nextCostDerivatives = nullptr;
 
     for(int l=getNbLayers()-1; l>=0; l--) {
         // Next cost derivatives computation
         if (l>0) {
-            nextCostDerivatives = new float*[batch.size];
-
-            for(int b=0; b<batch.size; b++) {
-                float* nextActivationDerivatives = layers->getLayer(l-1)->getActivationDerivatives(weightedSums[l-1][b]);
-                nextCostDerivatives[b] = new float[layers->getLayer(l-1)->getNbNeurons()];
-                for (int i = 0; i < layers->getLayer(l - 1)->getNbNeurons(); i++) {
-                    nextCostDerivatives[b][i] = 0.0f;
-                    for (int k = 0; k < layers->getLayer(l)->getNbNeurons(); k++) {
-                        nextCostDerivatives[b][i] += currentCostDerivatives[b][k] * layers->getLayer(l)->getWeight(k,i) * nextActivationDerivatives[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
-                    }
-                }
-                delete nextActivationDerivatives;
-            }
+            nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l, batch.size);
         }
 
         // Adjust the weights and biases of the current layer
-        float** prevLayerOutput = nullptr;
-        int prevLayerOutputsSize = 0;
-        if(l>0) {
-            prevLayerOutput = outputs[l-1];
-            prevLayerOutputsSize = layers->getLayer(l-1)->getNbNeurons();
-        } else {
-            prevLayerOutput = batch.input;
-            prevLayerOutputsSize = inputSize;
-        }
-
-        NeuronLayer* current = layers->getLayer(l);
-        for(int i=0; i<layers->getLayer(l)->getNbNeurons(); i++) {
-            for(int j=0; j<prevLayerOutputsSize; j++) {
-                // Mean of the derivatives
-                double deltaWeight = 0.02 * current->getWeight(i,j); //L2: lambda d(sum w^2)/dw = lambda * 2 * w where lambda = 0.01
-                double deltaBias = 0.0f;
-                for(int b=0; b<batch.size; b++) {
-                    deltaWeight += currentCostDerivatives[b][i] * prevLayerOutput[b][j]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
-                    deltaBias += currentCostDerivatives[b][i]; // delta = dC/da_k * da_k/dz_k
-                }
-                deltaWeight /= (double) batch.size;
-                deltaBias /= (double) batch.size;
-
-                // Adjust the parameters
-                float newWeightValue = current->getWeight(i,j) - learningRate * deltaWeight;
-                float newBiasValue = current->getBias(i) - learningRate * deltaBias;
-
-                current->setWeight(i, j, newWeightValue);
-                current->setBias(i, newBiasValue);
-            }
-        }
+        Tensor** prevLayerOutput = l>0 ? outputs[l-1] : &batch.input;
+        layers->getLayer(l)->adjustParams(batch.size, learningRate, currentCostDerivatives, prevLayerOutput);
 
         delete[] currentCostDerivatives;
         currentCostDerivatives = nextCostDerivatives;
@@ -197,10 +183,10 @@ void NeuralNetwork::fit(Batch batch) {
  * @param expectedResult Target output
  * @return Derivative of the cost for all the components of the output vector
  */
-float* NeuralNetwork::getCostDerivatives(float* prediction, float* expectedResult) {
-    float* lossDerivative = new float[layers->getLayer(getNbLayers()-1)->getNbNeurons()]; // The size should be given in the parameters instead of being hard coded
-    for(int i=0; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
-        lossDerivative[i] = prediction[i]-expectedResult[i];
+Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, float* expectedResult) {
+    Tensor* lossDerivative = new Tensor(1,{layers->getLayer(getNbLayers()-1)->getOutputSize(0)}); // The size should be given in the parameters instead of being hard coded
+    for(int i=0; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
+        lossDerivative->set({i}, prediction.get({i}) - expectedResult[i]);
     }
     return lossDerivative;
 }
@@ -216,42 +202,42 @@ void NeuralNetwork::setLearningRate(float newValue) {
     }
     learningRate = newValue;
 }
-
-/**
- * Save the current network in a file. For now it's use for debug purposes only. The save file can't be loaded.
- * @param fileName Name of the file where the network should be saved
- */
-void NeuralNetwork::save(std::string fileName) {
-    std::ofstream out(fileName);
-
-    if(!out.is_open()) {
-        std::cerr<< "Failed to create save file" <<std::endl;
-        return;
-    }
-
-    for(int l=0; l<getNbLayers(); l++) {
-        out << "Layer " << l << ": " << std::endl;
-        for(int i=0; i<layers->getLayer(l)->getNbNeurons(); i++) {
-            out << "(neuron " << i << ")   Bias = " << layers->getLayer(l)->getBias(i) << "   |   Weights: ";
-            for(int j=0; j<layers->getLayer(l)->getNbNeuronsPrevLayer(); j++) {
-                out << layers->getLayer(l)->getWeight(i,j) << " ";
-            }
-        }
-        out << std::endl << std::endl;
-    }
-    out.flush();
-    out.close();
-}
+//
+///**
+// * Save the current network in a file. For now it's use for debug purposes only. The save file can't be loaded.
+// * @param fileName Name of the file where the network should be saved
+// */
+//void NeuralNetwork::save(std::string fileName) {
+//    std::ofstream out(fileName);
+//
+//    if(!out.is_open()) {
+//        std::cerr<< "Failed to create save file" <<std::endl;
+//        return;
+//    }
+//
+//    for(int l=0; l<getNbLayers(); l++) {
+//        out << "Layer " << l << ": " << std::endl;
+//        for(int i=0; i<layers->getLayer(l)->getNbNeurons(); i++) {
+//            out << "(neuron " << i << ")   Bias = " << layers->getLayer(l)->getBias(i) << "   |   Weights: ";
+//            for(int j=0; j<layers->getLayer(l)->getNbNeuronsPrevLayer(); j++) {
+//                out << layers->getLayer(l)->getWeight(i,j) << " ";
+//            }
+//        }
+//        out << std::endl << std::endl;
+//    }
+//    out.flush();
+//    out.close();
+//}
 
 /**
  * Predict the label of the given input
- * @param intensityArray Input vector
+ * @param input Input vector
  * @return Label of the input vector: number between 0 and the size of the last layer - 1, depending on which component of the output was the highest
  */
-int NeuralNetwork::predict(float* intensityArray) {
-    float* output = evaluate(intensityArray);
+int NeuralNetwork::predict(Tensor input) {
+    float* output = evaluate(input);
     int i_max = 0;
-    for(int i=1; i<layers->getLayer(getNbLayers()-1)->getNbNeurons(); i++) {
+    for(int i=1; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
         if(output[i] > output[i_max])
             i_max = i;
     }

@@ -17,8 +17,8 @@
 
 class Softmax : public ActivationFunction {
 public:
-    float *getValues(float *input, int size);
-    float *getDerivatives(float *input, int size);
+    Tensor* getValues(Tensor input);
+    Tensor* getDerivatives(Tensor input);
 private:
     float getAbsMax(float* input, int size);
 };

@@ -45,7 +45,7 @@ Accuracy: **87 %**
 
 ## TODO
 
-1. Improve performance: add an option to use GPU with CUDA to increase the training speed
+1. Improve performance: add an option to use GPU with CUDA to increase the training speed. Use in the Tensor class the following code: https://developer.nvidia.com/blog/programming-tensor-cores-cuda-9/
 2. Conv2D and Max-pooling layers
 3. Confusion matrix
 4. Accuracy graph

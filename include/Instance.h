@@ -16,7 +16,7 @@
  */
 
 typedef struct Instance {
-    float* data; /**< Input vector (data fed to the neural network) */
+    Tensor data; /**< Input vector (data fed to the neural network) */
     int label; /**< Label associated to the input vector */
 } Instance;
 

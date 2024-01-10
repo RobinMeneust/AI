@@ -138,7 +138,7 @@ std::vector<Instance> getDataset(bool isTestSet, int maxNbInstancesPerClass) {
             Mat normalizedImage;
             cv::normalize(image, normalizedImage, 0, 1, cv::NORM_MINMAX);
 
-            instance.data = flatten(normalizedImage, 28, 28); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
+            instance.data = Tensor(1, {28*28}, flatten(normalizedImage, 28, 28)); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
             instance.label = i;
             instances.push_back(instance);
             if(j>=maxNbInstancesPerClass)
@@ -176,13 +176,13 @@ std::vector<Batch> generateBatches(int batchSize, std::vector<Instance> dataset,
     int k=0;
     for(int i=0; i<dataset.size()/batchSize; i++) {
         Batch batch;
-        batch.input = new float*[batchSize];
+        batch.input = new Tensor[batchSize];
         batch.target = new float*[batchSize];
         batch.size = batchSize;
 
         for(int j=0; j<batchSize; j++) {
             Instance instance = dataset[k];
-            batch.input[j] = instance.data;
+            batch.input[j] = Tensor(instance.data);
             batch.target[j] = targets[instance.label];
             k++;
         }
