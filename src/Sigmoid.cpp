@@ -15,8 +15,8 @@
  * @return Vector of the output of the function for each component of the input vector
  */
 
-Tensor* Sigmoid::getValues(Tensor input) {
-    Tensor* output = getValues(input);
+Tensor* Sigmoid::getValues(const Tensor &input) {
+    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
     for(int i=0; i<input.getDimSizes()[0]; i++) {
         output->set({i}, 1.0f/(1+exp(-input.get({i}))));
     }
@@ -29,7 +29,7 @@ Tensor* Sigmoid::getValues(Tensor input) {
  * @return Vector of the derivative of the function for each component of the input vector
  */
 
-Tensor* Sigmoid::getDerivatives(Tensor input) {
+Tensor* Sigmoid::getDerivatives(const Tensor &input) {
     Tensor* output = getValues(input);
     for(int i=0; i<input.getDimSizes()[0]; i++) {
         float temp = output->get({i});

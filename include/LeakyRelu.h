@@ -17,8 +17,8 @@
 
 class LeakyRelu : public ActivationFunction {
 public:
-    Tensor* getValues(Tensor input);
-    Tensor* getDerivatives(Tensor input);
+    Tensor* getValues(const Tensor &input);
+    Tensor* getDerivatives(const Tensor &input);
 };
 
 #endif

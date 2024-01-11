@@ -19,7 +19,7 @@
 
 class DenseLayer : public Layer {
 private:
-    float** weights; /**< Matrix of all the weight of this layer */
+    Tensor weights; /**< Matrix of all the weight of this layer */
     float* biases; /**< List of all the biases of this layer */
 
 public:
@@ -35,8 +35,10 @@ public:
     int getNbNeuronsPrevLayer();
 
     Tensor* getOutput(const Tensor &input);
-    void adjustParams(int batchSize, float learningRate, Tensor** currentCostDerivatives, Tensor** prevLayerOutput);
+    void adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput);
     Tensor* getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex);
+    Tensor* getPreActivationDerivatives();
     Tensor* getPreActivationValues(const Tensor &tensor);
+    Tensor* getWeights();
 };
 #endif

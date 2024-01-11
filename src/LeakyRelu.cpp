@@ -13,7 +13,7 @@
  * @param input Input vector
  * @return Vector of the output of the function for each component of the input vector
  */
-Tensor* LeakyRelu::getValues(Tensor input) {
+Tensor* LeakyRelu::getValues(const Tensor &input) {
     Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
     for(int i=0; i<output->getDimSizes()[0]; i++) {
         float inputValue = input.get({i});
@@ -27,7 +27,7 @@ Tensor* LeakyRelu::getValues(Tensor input) {
  * @param input Input vector
  * @return Vector of the derivative of the function for each component of the input vector
  */
-Tensor* LeakyRelu::getDerivatives(Tensor input) {
+Tensor* LeakyRelu::getDerivatives(const Tensor &input) {
     Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
     for(int i=0; i<output->getDimSizes()[0]; i++) {
         output->set({i}, input.get({i}) <= 0 ? 0.01 : 1);

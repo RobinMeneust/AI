@@ -14,7 +14,7 @@
  * @param input Input vector
  * @return Vector of the output of the function for each component of the input vector
  */
-Tensor* Identity::getValues(Tensor input) {
+Tensor* Identity::getValues(const Tensor &input) {
     return new Tensor(input);
 }
 
@@ -24,7 +24,7 @@ Tensor* Identity::getValues(Tensor input) {
  * @return Vector of the derivative of the function for each component of the input vector
  */
 
-Tensor* Identity::getDerivatives(Tensor input) {
+Tensor* Identity::getDerivatives(const Tensor &input) {
     float* output = new float[input.getDimSizes()[0]];
     for(int i=0; i<input.getDimSizes()[0]; i++) {
         output[i] = 1;

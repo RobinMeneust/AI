@@ -113,8 +113,8 @@ float* flatten(Mat matrix, int width, int height) {
  * @param maxNbInstancesPerClass Max number of instances per class
  * @return List of instances
  */
-std::vector<Instance> getDataset(bool isTestSet, int maxNbInstancesPerClass) {
-    std::vector<Instance> instances;
+std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], int maxNbInstancesPerClass) {
+    std::vector<Instance*> instances;
     if(maxNbInstancesPerClass<1) {
         std::cerr << "Invalid value for maxNbExamples must be greater or equal to 1" << std::endl;
         return instances;
@@ -133,13 +133,15 @@ std::vector<Instance> getDataset(bool isTestSet, int maxNbInstancesPerClass) {
         glob(fileNameStr, filenames);
 
         for(int j=0; j<filenames.size(); j++) {
-            Instance instance;
+
             Mat image = loadImage(filenames[j]);
             Mat normalizedImage;
             cv::normalize(image, normalizedImage, 0, 1, cv::NORM_MINMAX);
 
-            instance.data = Tensor(1, {28*28}, flatten(normalizedImage, 28, 28)); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
-            instance.label = i;
+            float* flattenInput = flatten(normalizedImage, 28, 28); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
+            Instance* instance = new Instance(new Tensor(1, {28*28}, flattenInput), expectedResult[i]);
+            delete[] flattenInput;
+
             instances.push_back(instance);
             if(j>=maxNbInstancesPerClass)
                 break;
@@ -154,8 +156,8 @@ std::vector<Instance> getDataset(bool isTestSet, int maxNbInstancesPerClass) {
  * @param isTestSet If true we look into the folder test/ otherwise it's train/
  * @return List of instances
  */
-std::vector<Instance> getDataset(bool isTestSet) {
-    return getDataset(isTestSet, INT32_MAX);
+std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10]) {
+    return getDataset(isTestSet, expectedResult, INT32_MAX);
 }
 
 /**
@@ -165,7 +167,7 @@ std::vector<Instance> getDataset(bool isTestSet) {
  * @param targets Array containing the one hot representation of the target outputs per class
  * @return List of batches generated
  */
-std::vector<Batch> generateBatches(int batchSize, std::vector<Instance> dataset, float targets[10][10]) {
+std::vector<Batch> generateBatches(int batchSize, std::vector<Instance*> dataset) {
     //TODO: This function is too slow and we repeat the transformation several times on data that have already been transformed
     auto seed = (unsigned) time(nullptr);
     std::default_random_engine gen(seed);
@@ -173,35 +175,29 @@ std::vector<Batch> generateBatches(int batchSize, std::vector<Instance> dataset,
     std::vector<Batch> batches;
     std::shuffle(std::begin(dataset), std::end(dataset), gen);
 
+    int instanceSize = dataset[0]->getData()->size();
+
     int k=0;
     for(int i=0; i<dataset.size()/batchSize; i++) {
-        Batch batch;
-        batch.input = new Tensor[batchSize];
-        batch.target = new float*[batchSize];
-        batch.size = batchSize;
+        float* batchDataHead = new float[batchSize*instanceSize];
+        float* batchData = batchDataHead;
+        std::vector<float*> targets;
 
         for(int j=0; j<batchSize; j++) {
-            Instance instance = dataset[k];
-            batch.input[j] = Tensor(instance.data);
-            batch.target[j] = targets[instance.label];
+            float* instanceData = dataset[k]->getData()->getData();
+            targets.push_back(dataset[k]->getOneHotLabel());
+
+            std::copy(instanceData, instanceData + instanceSize, batchData);
+            batchData += instanceSize;
             k++;
         }
+
+        Batch batch = Batch(2, {batchSize, instanceSize}, batchDataHead, targets);
         batches.push_back(batch);
+
     }
     return batches;
 }
-
-/**
- * Free the memory of the data in the batches (only the input field, not the target vector since it's shared between batches and epochs)
- * @param batches Batch to be deleted (a batch contain input data and target output)
- */
-void removeBatches(std::vector<Batch> batches) {
-    for(auto & batch : batches) {
-        delete[] batch.input;
-    }
-    batches.clear();
-}
-
 
 /**
  * @brief Main function
@@ -213,15 +209,11 @@ int main()
     NeuralNetwork* network = initNN();
     std::cout << "ANN created" << std::endl;
 
-    std::vector<Instance> trainingSet;
-    std::vector<Instance> testSet;
+    std::vector<Instance*> trainingSet;
+    std::vector<Instance*> testSet;
 
     int nbEpochs = 100;
     int batchSize = 64;
-
-    std::cout << "Fetching and transforming data..." << std::endl;
-    trainingSet = getDataset(false,300);
-    testSet = getDataset(true, 50);
 
     float expectedResult[10][10];
     for(int i=0; i<10; i++) {
@@ -230,22 +222,31 @@ int main()
         }
     }
 
+    std::cout << "Fetching and transforming data..." << std::endl;
+    trainingSet = getDataset(false, expectedResult,300);
+    testSet = getDataset(true, expectedResult, 50);
+
+
     // TRAIN
     std::cout << "Training..." << std::endl;
     for(int epoch=0; epoch<nbEpochs; epoch++) {
         std::cout << "Generating batches..." << std::endl;
-        std::vector<Batch> batches = generateBatches(batchSize, trainingSet, expectedResult);
+        std::vector<Batch> batches = generateBatches(batchSize, trainingSet);
 
         std::cout << "Training batches..." << std::endl;
         if(batches.empty()) {
             std::cerr << "The batches could not be generated. The batch size might be too large" << std::endl;
             exit(EXIT_FAILURE);
         }
+//
+//        Batch b = batches.back();
+//        Tensor* t = b.getInstance(0)->getData();
+//        std::cout << t->toString() << std::endl;
 
+//        exit(EXIT_SUCCESS);
         for(auto &batch : batches) {
             network->fit(batch);
         }
-        removeBatches(batches);
         std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(testSet) << std::endl;
     }
     std::cout << "training done" << std::endl;

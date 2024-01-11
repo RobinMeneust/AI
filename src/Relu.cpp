@@ -14,7 +14,7 @@
  * @return Vector of the output of the function for each component of the input vector
  */
 
-Tensor* Relu::getValues(Tensor input) {
+Tensor* Relu::getValues(const Tensor &input) {
     Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
     for(int i=0; i<input.getDimSizes()[0]; i++) {
         float inputValue = input.get({i});
@@ -30,7 +30,7 @@ Tensor* Relu::getValues(Tensor input) {
  * @return Vector of the derivative of the function for each component of the input vector
  */
 
-Tensor* Relu::getDerivatives(Tensor input) {
+Tensor* Relu::getDerivatives(const Tensor &input) {
     Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
     for(int i=0; i<input.getDimSizes()[0]; i++) {
         output->set({i}, input.get({i}) <= 0 ? 0 : 1);

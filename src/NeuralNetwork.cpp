@@ -72,25 +72,38 @@ float *NeuralNetwork::evaluate(Tensor input) {
  * @param currentCostDerivatives dC/dz_i, where z_i is the output i of the layer (layerIndex),
  * @param weightedSumsPrevLayer Weighted sums of the layer (layerIndex - 1)
  * @param layerIndex Index of the current layer (where currentCostDerivatives is used to adjust the weights and biases)
- * @param batchSize Number of instances in the batch of instances sent to the first layer of the network
  * @return Derivatives of the total cost in respect for the output of the layer (layerIndex - 1)
  */
-Tensor** NeuralNetwork::getNextCostDerivatives(Tensor** currentCostDerivatives, Tensor** weightedSumsPrevLayer, int layerIndex, int batchSize) {
-    Tensor** nextCostDerivatives = new Tensor*[batchSize];
+Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex) {
+    float* newData = new float[currentCostDerivatives->getDimSize(0) * layers->getLayer(layerIndex - 1)->getOutputSize(0)];
 
-    for(int b=0; b<batchSize; b++) {
-        Tensor* nextActivationDerivatives = layers->getLayer(layerIndex-1)->getActivationDerivatives(*weightedSumsPrevLayer[b]);
-        nextCostDerivatives[b] = new Tensor(1,{layers->getLayer(layerIndex-1)->getOutputSize(0)});
+    Tensor* nextActivationDerivatives = layers->getLayer(layerIndex-1)->getActivationDerivatives(*weightedSumsPrevLayer);
+    float* nextActivationDerivativesData = nextActivationDerivatives->getData();
+
+    float* currentCostDerivativesData = currentCostDerivatives->getData();
+
+    Tensor* preActivationDerivatives = layers->getLayer(layerIndex)->getPreActivationDerivatives();
+    float* preActivationDerivativesData = preActivationDerivatives->getData();
+
+    int p1=0;
+    int p2=0;
+    for(int b=0; b<currentCostDerivatives->getDimSize(0); b++) {
+        int p3 = 0;
         for (int i = 0; i < layers->getLayer(layerIndex - 1)->getOutputSize(0); i++) {
-            nextCostDerivatives[b]->set({i}, 0.0f);
+            newData[p1] = 0.0f;
             for (int k = 0; k < layers->getLayer(layerIndex)->getOutputSize(0); k++) {
-                //TODO: optimize
-                nextCostDerivatives[b]->set({i}, nextCostDerivatives[b]->get({i}) + currentCostDerivatives[b]->get({0}) * layers->getLayer(layerIndex)->getPreActivationDerivatives(k,i)->get({0}) * nextActivationDerivatives->get({i})); // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+                newData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+                p2++;
+                p3++;
             }
+            p1++;
+            p2--; // since p2 is for b and k and not i
         }
-        delete nextActivationDerivatives;
     }
 
+    Tensor* nextCostDerivatives = new Tensor(2, {currentCostDerivatives->getDimSize(0), layers->getLayer(layerIndex - 1)->getOutputSize(0)}, newData);
+    delete[] newData;
+    delete nextActivationDerivatives;
     return nextCostDerivatives;
 }
 
@@ -99,78 +112,60 @@ Tensor** NeuralNetwork::getNextCostDerivatives(Tensor** currentCostDerivatives, 
  * @param batch Batch of instances (input data + target output)
  */
 void NeuralNetwork::fit(Batch batch) {
-    if(batch.size<=0) {
+    if(batch.getSize()<=0) {
         std::cerr << "WARNING: the batch size is null" << std::endl;
         return;
     }
+    Tensor* inputData = batch.getData();
 
-    Tensor*** weightedSums = new Tensor**[getNbLayers()];
-    Tensor*** outputs = new Tensor**[getNbLayers()];
+    Tensor** weightedSums = new Tensor*[getNbLayers()];
+    Tensor** outputs = new Tensor*[getNbLayers()];
 
-    for(int i=0; i<getNbLayers(); i++) {
-        weightedSums[i] = new Tensor*[batch.size];
-        outputs[i] = new Tensor*[batch.size];
-    }
-
-    for(int b=0; b<batch.size; b++) {
-        weightedSums[0][b] = layers->getLayer(0)->getPreActivationValues(batch.input[b]);
-    }
-
-    for(int b=0; b<batch.size; b++) {
-        outputs[0][b] = layers->getLayer(0)->getActivationValues(*weightedSums[0][b]);
-    }
+    weightedSums[0] = layers->getLayer(0)->getPreActivationValues(*(batch.getData()));
+    outputs[0] = layers->getLayer(0)->getActivationValues(*(weightedSums[0]));
 
     for(int i=1; i<getNbLayers(); i++) {
-        for(int b=0; b<batch.size; b++) {
-            weightedSums[i][b] = layers->getLayer(i)->getPreActivationValues(*outputs[i-1][b]);
-            outputs[i][b] = layers->getLayer(i)->getActivationValues(*weightedSums[i][b]);
-        }
+        weightedSums[i] = layers->getLayer(i)->getPreActivationValues(*(outputs[i-1]));
+        outputs[i]= layers->getLayer(i)->getActivationValues(*(weightedSums[i]));
     }
 
     // dC/da_k * da_k/dz_k
-    Tensor** currentCostDerivatives = new Tensor*[batch.size];
-    for(int b=0; b<batch.size; b++) {
-        currentCostDerivatives[b] = getCostDerivatives(*outputs[getNbLayers()-1][b], batch.target[b]); // dC/da_k
-    }
+    Tensor* currentCostDerivatives = getCostDerivatives(*(outputs[getNbLayers()-1]), batch); // dC/da_k
+    float* currentCostDerivativesData = currentCostDerivatives->getData();
 
-    Tensor** activationDerivatives = new Tensor*[batch.size];
-    for(int b=0; b<batch.size; b++) {
-        activationDerivatives[b] = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(*weightedSums[getNbLayers()-1][b]);
+    int k=0;
+    Tensor* activationDerivatives = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(*weightedSums[getNbLayers()-1]);
+    float* activationDerivativesData = activationDerivatives->getData();
+
+    float invSize = 1.0f/layers->getLayer(getNbLayers()-1)->getOutputSize(0);
+    for(int b=0; b<batch.getSize(); b++) {
         for(int i=0; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
-            //TODO: optimize
-            currentCostDerivatives[b]->set({i}, currentCostDerivatives[b]->get({i}) * (1.0f/layers->getLayer(getNbLayers()-1)->getOutputSize(0)) * activationDerivatives[b]->get({i}));
+            currentCostDerivativesData[k] *= invSize * activationDerivativesData[k];
+            k++;
         }
     }
+    delete activationDerivatives;
 
-    for(int i=0; i<batch.size; i++) {
-        delete activationDerivatives[i];
-    }
-
-    delete[] activationDerivatives;
-
-    Tensor** nextCostDerivatives = nullptr;
+    Tensor* nextCostDerivatives = nullptr;
 
     for(int l=getNbLayers()-1; l>=0; l--) {
+        std::cout << "LAYER "<< l << std::endl;
         // Next cost derivatives computation
         if (l>0) {
-            nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l, batch.size);
+            nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l);
         }
 
         // Adjust the weights and biases of the current layer
-        Tensor** prevLayerOutput = l>0 ? outputs[l-1] : &batch.input;
-        layers->getLayer(l)->adjustParams(batch.size, learningRate, currentCostDerivatives, prevLayerOutput);
+        Tensor* prevLayerOutput = l>0 ? outputs[l-1] : inputData;
+        layers->getLayer(l)->adjustParams(learningRate, currentCostDerivatives, prevLayerOutput);
 
         delete[] currentCostDerivatives;
         currentCostDerivatives = nextCostDerivatives;
     }
 
     for(int i=0; i<getNbLayers(); i++) {
-        for(int b=0; b<batch.size; b++) {
-            delete weightedSums[i][b];
-            delete outputs[i][b];
-        }
-        delete[] weightedSums[i];
-        delete[] outputs[i];
+        delete weightedSums[i];
+        delete outputs[i];
     }
     delete[] weightedSums;
     delete[] outputs;
@@ -183,11 +178,21 @@ void NeuralNetwork::fit(Batch batch) {
  * @param expectedResult Target output
  * @return Derivative of the cost for all the components of the output vector
  */
-Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, float* expectedResult) {
-    Tensor* lossDerivative = new Tensor(1,{layers->getLayer(getNbLayers()-1)->getOutputSize(0)}); // The size should be given in the parameters instead of being hard coded
-    for(int i=0; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
-        lossDerivative->set({i}, prediction.get({i}) - expectedResult[i]);
+Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch &batch) {
+    float* newData = new float[batch.getSize()];
+    int outputSize = layers->getLayer(getNbLayers()-1)->getOutputSize(0);
+    float* predictionData = prediction.getData();
+
+    int k=0;
+    for(int b=0; b<batch.getSize(); b++) {
+        for(int i=0; i<outputSize; i++) {
+            newData[k] = predictionData[i] - batch.getTarget(b)[i];
+            k++;
+        }
     }
+
+    Tensor* lossDerivative = new Tensor(2,{batch.getSize(), outputSize}, newData); // The size should be given in the parameters instead of being hard coded
+    delete[] newData;
     return lossDerivative;
 }
 
@@ -251,10 +256,10 @@ int NeuralNetwork::predict(Tensor input) {
  * @return Accuracy (between 0 and 1)
  */
 
-float NeuralNetwork::getAccuracy(std::vector<Instance> testSet) {
+float NeuralNetwork::getAccuracy(const std::vector<Instance*> &testSet) {
     int validPredictions = 0;
     for(int i=0; i<testSet.size(); i++) {
-        if (predict(testSet[i].data) == testSet[i].label) {
+        if (testSet[i]->getOneHotLabel()[predict(*(testSet[i]->getData()))] == 1) {
             validPredictions++;
         }
     }

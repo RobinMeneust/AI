@@ -23,7 +23,7 @@ public:
      * @param Tensor Input tensor
      * @return Tensor of the outputs of the function for each component of the input tensor
      */
-    virtual Tensor* getValues(Tensor input) = 0;
+    virtual Tensor* getValues(const Tensor &input) = 0;
 
     /**
      * Let f be the activation function. If input is a vector for example: for all component xi of the input vector, calculate the derivative df(xi)/dxi and return a vector that contains the result for each xi. Some functions only accept specific tensor dimensions.
@@ -31,6 +31,6 @@ public:
      * @param size Size of the input vector
      * @return Vector of the derivative of the function for each component of the input vector
      */
-    virtual Tensor* getDerivatives(Tensor input) = 0;
+    virtual Tensor* getDerivatives(const Tensor &input) = 0;
 };
 #endif

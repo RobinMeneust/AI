@@ -8,16 +8,25 @@
 #ifndef CPP_AI_PROJECT_BATCH_H
 #define CPP_AI_PROJECT_BATCH_H
 
-//TODO: create a class Batch instead (with a destructor)
+#include "Instance.h"
 
 /**
- * Structure to represent a batch: a group of instances defined as: (inputTensor, targetOutputVector)
+ * Class representing a batch: a group of instances defined as: (inputTensor, targetOutputVector)
  */
 
-typedef struct Batch {
-    Tensor* input; /**< List of (size) input tensors (data fed to the neural network) */
-    float** target; /**< List of (size) target output tensors (data compared to the output of the neural network that was fed with the input vector): one hot representation of the label */
-    int size; /**< Size of the batch (number of instances) */
-} Batch;
+class Batch {
+private:
+    Tensor data; /**< List of data instances pointers */
+    std::vector<float*> targets;
+    int size;
+public:
+    Batch(Tensor data);
+    Batch(int nDimData, std::vector<int> dimSizes, float *data, const std::vector<float *> &targets);
+    ~Batch() = default;
+    int getSize() const;
+    float * getTarget(int i) const;
+    Tensor *getData();
+    void addTarget(float* target);
+};
 
 #endif

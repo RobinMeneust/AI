@@ -8,7 +8,7 @@
 #include "../include/Tensor.h"
 #include <iostream>
 
-Tensor::Tensor(int nDim, std::vector<int> dimSizes) : nDim(nDim), dimSizes(dimSizes) {
+Tensor::Tensor(int nDim, const std::vector<int> &dimSizes) : nDim(nDim), dimSizes(dimSizes) {
     strides = new int[nDim];
 
     if(nDim != dimSizes.size()) {
@@ -20,28 +20,28 @@ Tensor::Tensor(int nDim, std::vector<int> dimSizes) : nDim(nDim), dimSizes(dimSi
     int j=nDim-1;
 
     for(int i=0; i<nDim; i++) {
-        strides[i] = stepSize;
-        stepSize *= dimSizes[j];
+        strides[j] = stepSize;
+        stepSize *= dimSizes[i];
         j--;
     }
-
     data = new float[stepSize]; // Here stepSize = product of all dim sizes
 }
 
 Tensor::~Tensor() {
     delete[] data;
+    delete[] strides;
 }
 
 int Tensor::getIndex(const std::vector<int>& coord) const {
-    if(nDim != coord.size()) {
+    if(getNDim() != coord.size()) {
         std::cerr << "ERROR: The provided coordinates are not in the dimension of the tensor" << std::endl;
         exit(EXIT_FAILURE);
     }
 
     int index = 0;
-    for(int i=0; i<nDim; i++) {
-        if(coord[i] >= dimSizes[i]) {
-            std::cerr << "ERROR: One of the provided coordinates is out of bound (check the tensor shape)" << std::endl;
+    for(int i=0; i<getNDim(); i++) {
+        if(coord[i] >= getDimSize(i)) {
+            std::cerr << "ERROR: One of the provided coordinates is out of bound (check the tensor shape) for the coord " << i << " :  " << getDimSize(i) << " >= " << getDimSize(i) << std::endl;
             exit(EXIT_FAILURE);
         }
         index += coord[i] * strides[i];
@@ -51,30 +51,38 @@ int Tensor::getIndex(const std::vector<int>& coord) const {
 }
 
 float Tensor::get(const std::vector<int>& coord) const {
-    return data[getIndex(coord)];
+    int i = getIndex(coord);
+    return data[i];
+}
+
+float* Tensor::getStart(const std::vector<int> &coordStart) const {
+    int i = getIndex(coordStart);
+    return &(data[i]);
 }
 
 void Tensor::set(const std::vector<int>& coord, float newValue) {
-    data[getIndex(coord)] = newValue;
+    int i = getIndex(coord);
+    float a = strides[0];
+    float b = -1;
+    if(coord.size()>1)
+        b = strides[1];
+    data[i] = newValue;
 }
 
-int Tensor::getNDim() {
+int Tensor::getNDim() const {
     return nDim;
 }
 
-std::vector<int> Tensor::getDimSizes() {
+std::vector<int> Tensor::getDimSizes() const {
     return dimSizes;
 }
 
-Tensor::Tensor() : nDim(0), strides(nullptr), data(nullptr) {
-    dimSizes = std::vector<int>(0);
-}
 
-float *Tensor::getData() {
+float * Tensor::getData() const {
     return data;
 }
 
-Tensor::Tensor(int nDim, const std::vector<int> &dimSizes, float *initData) : Tensor(nDim, dimSizes) {
+Tensor::Tensor(int nDim, const std::vector<int> &dimSizes, const float *initData) : Tensor(nDim, dimSizes) {
     int size = 1;
     for(auto &s:dimSizes) {
         size *= s;
@@ -83,4 +91,30 @@ Tensor::Tensor(int nDim, const std::vector<int> &dimSizes, float *initData) : Te
     for(int i=0; i<size; i++) {
         data[i] = initData[i];
     }
+}
+
+std::string Tensor::toString() {
+    float* data = getData();
+    std::string s;
+    for(int i=0; i<size(); i++) {
+        s.append(std::to_string(data[i]));
+        s.append(" ");
+    }
+    return s;
+}
+
+int Tensor::size() {
+    int size = 1;
+    for(int i=0; i<getNDim(); i++) {
+        size *= getDimSize(i);
+    }
+    return size;
+}
+
+int Tensor::getDimSize(int i) const {
+    if(i<0 || i>=getNDim()) {
+        perror("ERROR: dimension out of bound in getDimSize");
+        exit(EXIT_FAILURE);
+    }
+    return dimSizes[i];
 }

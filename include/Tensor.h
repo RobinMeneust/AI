@@ -9,6 +9,7 @@
 #define TENSOR_H
 
 #include <vector>
+#include <string>
 
 /**
  * @class Tensor
@@ -24,19 +25,19 @@ private:
     float* data; /**< Data (in a flattened representation) */
 
 public:
-    Tensor(int nDim, std::vector<int> dimSizes);
-    Tensor();
+    Tensor(int nDim, const std::vector<int> &dimSizes);
     ~Tensor();
     float get(const std::vector<int>& coord) const;
     void set(const std::vector<int>& coord, float newValue);
-    int getNDim();
-    float* getData();
-    std::vector<int> getDimSizes();
-
-
-    Tensor(int nDim, const std::vector<int> &dimSizes, float *data);
-
-private:
+    int getNDim() const;
+    float * getData() const;
+    std::vector<int> getDimSizes() const;
+    Tensor(int nDim, const std::vector<int> &dimSizes, const float *data);
+    std::string toString();
+    int size();
+    int getDimSize(int i) const;
+    float* getStart(const std::vector<int> &coordStart) const;
     int getIndex(const std::vector<int> &coord) const;
+
 };
 #endif

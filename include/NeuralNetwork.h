@@ -34,13 +34,13 @@ public:
     int getNbLayers();
     void addLayer(int nbNeurons, ActivationFunction* activationFunction);
     float* evaluate(Tensor input);
-    Tensor** getNextCostDerivatives(Tensor** currentCostDerivatives, Tensor** weightedSumsPrevLayer, int layerIndex, int batchSize);
+    Tensor* getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex);
     void fit(Batch batch);
-    Tensor* getCostDerivatives(const Tensor &prediction, float* expectedResult);
+    Tensor* getCostDerivatives(const Tensor &prediction, const Batch &batch);
     void setLearningRate(float newValue);
 //    void save(std::string fileName);
     int predict(Tensor input);
-    float getAccuracy(std::vector<Instance> testSet);
+    float getAccuracy(const std::vector<Instance*> &testSet);
 };
 
 #endif

@@ -51,4 +51,7 @@ Tensor* Layer::getActivationValues(const Tensor &input) {
     return activationFunction->getValues(input);
 }
 
+const std::vector<int> & Layer::getOutputShape() {
+    return outputShape;
+}
 

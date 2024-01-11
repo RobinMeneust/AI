@@ -17,7 +17,7 @@
  * @param nbNeuronsPrevLayer Number of neurons of the previous layer (input size)
  * @param activationFunction Activation function used (Softmax, Sigmoid...)
  */
-DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction *activationFunction) : Layer({nbNeuronsPrevLayer},{nbNeurons}, activationFunction), weights(nullptr), biases(nullptr) {
+DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction *activationFunction) : Layer({nbNeuronsPrevLayer},{nbNeurons}, activationFunction), weights(Tensor(2, {nbNeurons, nbNeuronsPrevLayer})), biases(nullptr) {
 	// Allocate memory and initialize neuron layer with random values for bias and weight
     // Use Uniform Xavier Initialization
 
@@ -33,11 +33,9 @@ DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction
 		biases[i] = distribution(gen);
 	}
 
-    weights = new float*[nbNeurons];
     for(int i=0; i<nbNeurons; i++){
-        weights[i] = new float[nbNeuronsPrevLayer];
         for(int j=0; j<nbNeuronsPrevLayer; j++) {
-            weights[i][j] = distribution(gen);
+            weights.set({i,j}, distribution(gen));
         }
     }
 }
@@ -46,8 +44,8 @@ DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction
  * Copy a neuron layer
  * @param copy Copied neuron layer
  */
-DenseLayer::DenseLayer(DenseLayer const& copy) : Layer({copy.inputShape[0]},{copy.outputShape[0]}, copy.activationFunction), weights(nullptr), biases(nullptr) {
-    if(copy.biases == nullptr || copy.weights == nullptr || copy.activationFunction == nullptr) {
+DenseLayer::DenseLayer(DenseLayer const& copy) : Layer({copy.inputShape[0]},{copy.outputShape[0]}, copy.activationFunction), weights(copy.weights), biases(nullptr) {
+    if(copy.biases == nullptr || copy.weights.getNDim() != 2 || copy.activationFunction == nullptr) {
         return;
     }
 
@@ -55,13 +53,6 @@ DenseLayer::DenseLayer(DenseLayer const& copy) : Layer({copy.inputShape[0]},{cop
 	for(int i=0; i<copy.outputShape[0]; i++){
 		biases[i]=copy.biases[i];
 	}
-
-    weights=new float*[copy.outputShape[0]];
-    for(int i=0; i<copy.outputShape[0]; i++){
-        weights[i]=new float[copy.inputShape[0]];
-        for(int j=0; j<copy.inputShape[0]; j++)
-            weights[i][j]=copy.weights[i][j];
-    }
 
     activationFunction = copy.activationFunction;
 }
@@ -72,10 +63,6 @@ DenseLayer::DenseLayer(DenseLayer const& copy) : Layer({copy.inputShape[0]},{cop
 DenseLayer::~DenseLayer()
 {
 	delete [] biases;
-
-    for(int i=0; i<getNbNeurons(); i++)
-        delete [] weights[i];
-    delete [] weights;
 }
 
 /**
@@ -83,7 +70,7 @@ DenseLayer::~DenseLayer()
  * @return Number of neurons in this layer
  */
 int DenseLayer::getNbNeurons() {
-    return getInputSize(0);
+    return getOutputSize(0);
 }
 
 /**
@@ -91,7 +78,7 @@ int DenseLayer::getNbNeurons() {
  * @return Number of neurons in the previous layer
  */
 int DenseLayer::getNbNeuronsPrevLayer() {
-    return getOutputSize(0);
+    return getInputSize(0);
 }
 
 /**
@@ -101,12 +88,18 @@ int DenseLayer::getNbNeuronsPrevLayer() {
 
 Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
     Tensor* output = new Tensor(1, {getNbNeurons()});
+
+    float* outputData = output->getData();
+    float* weightsData = weights.getData();
+    float* inputData = input.getData();
+
+    int k = 0;
     for(int i=0; i<getNbNeurons(); i++) {
-        output->set({i}, 0.0f);
+        float sum = biases[i];
         for(int j=0; j<getNbNeuronsPrevLayer(); j++) {
-            output->set({i}, output->get({i}) + input.get({j}) * weights[i][j]);
+            outputData[i] += inputData[j] * weightsData[k];
+            k++;
         }
-        output->set({i}, output->get({i}) + biases[i]);
     }
     return output;
 }
@@ -132,7 +125,7 @@ Tensor* DenseLayer::getOutput(const Tensor &input) {
  */
 float DenseLayer::getWeight(int neuron, int prevNeuron) {
     if(neuron >= 0 && neuron < getNbNeurons() && prevNeuron >= 0 && prevNeuron < getNbNeuronsPrevLayer()) {
-        return weights[neuron][prevNeuron];
+        return weights.get({neuron,prevNeuron});
     }
     std::cerr << "getWeight(): Invalid neuron index and previous neuron index for weight" << std::endl;
     exit(EXIT_FAILURE);
@@ -146,7 +139,7 @@ float DenseLayer::getWeight(int neuron, int prevNeuron) {
  */
 void DenseLayer::setWeight(int neuron, int prevNeuron, float newValue) {
     if(neuron >= 0 && neuron < getNbNeurons() && prevNeuron >= 0 && prevNeuron < getNbNeuronsPrevLayer()) {
-        weights[neuron][prevNeuron] = newValue;
+        weights.set({neuron,prevNeuron}, newValue);
         return;
     }
     exit(EXIT_FAILURE);
@@ -182,29 +175,42 @@ void DenseLayer::setBias(int neuron, float newValue) {
 
 /**
  * Adjust the weights and biases depending on the gradient
- * @param batchSize Number of instances in the batch of instances sent to the first layer of the network to which this layer belong
  * @param learningRate Learning rate of the neural network (it's the speed, the strength of the variation: if it's high, one iteration may change a lot the parameters and if it's low, then it won't change it much)
  * @param currentCostDerivatives dC/dz_i, where C is the total cost and z_i is the output i of the current layer
  * @param prevLayerOutput Output of the previous layer in the network (it's the input of this layer)
  */
-void DenseLayer::adjustParams(int batchSize, float learningRate, Tensor** currentCostDerivatives, Tensor** prevLayerOutput) {
+void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput) {
+    float* weightsData = weights.getData();
+    float* currentCostDerivativesData = currentCostDerivatives->getData();
+    float* prevLayerOutputData = prevLayerOutput->getData();
+    int batchSize = currentCostDerivatives->getDimSize(0);
+
+    int k=0;
+    int p=0;
+
     for(int i=0; i<getNbNeurons(); i++) {
+        int m=0;
         for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
+            // weightsData[k] = w_i,j
+
             // Mean of the derivatives
-            double deltaWeight = 0.02 * getWeight(i, j); // weight decay, L2: lambda d(sum w^2)/dw = lambda * 2 * w where lambda = 0.01
+            double deltaWeight = 0.02 * weightsData[k]; // weight decay, L2: lambda d(sum w^2)/dw = lambda * 2 * w where lambda = 0.01
             double deltaBias = 0.0f;
             for (int b = 0; b < batchSize; b++) {
-                deltaWeight += currentCostDerivatives[b]->get({i}) * prevLayerOutput[b]->get({j}); // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
-                deltaBias += currentCostDerivatives[b]->get({i}); // delta = dC/da_k * da_k/dz_k
+                deltaWeight += currentCostDerivativesData[p] * prevLayerOutputData[m]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
+                deltaBias += currentCostDerivativesData[p]; // delta = dC/da_k * da_k/dz_k
+                p++;
+                m++;
             }
+            p--; // j should not be incremented here (we are in 2D not 3D)
             deltaWeight /= (double) batchSize;
             deltaBias /= (double) batchSize;
 
             // Adjust the parameters
-            float newWeightValue = getWeight(i, j) - learningRate * deltaWeight;
+            float newWeightValue = weightsData[k] - learningRate * deltaWeight;
             float newBiasValue = getBias(i) - learningRate * deltaBias;
 
-            setWeight(i, j, newWeightValue);
+            weightsData[k] = newWeightValue;
             setBias(i, newBiasValue);
         }
     }
@@ -214,4 +220,12 @@ Tensor* DenseLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int
     Tensor* output = new Tensor(1, {1});
     output->set({0},getWeight(currentLayerOutputIndex, prevLayerOutputIndex));
     return output;
+}
+
+Tensor *DenseLayer::getWeights() {
+    return &weights;
+}
+
+Tensor *DenseLayer::getPreActivationDerivatives() {
+    return &weights;
 }

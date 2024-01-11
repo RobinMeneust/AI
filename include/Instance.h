@@ -9,15 +9,22 @@
 #ifndef CPP_AI_PROJECT_INSTANCE_H
 #define CPP_AI_PROJECT_INSTANCE_H
 
-//TODO: create a class Instance instead (with a destructor)
+#include "Tensor.h"
 
 /**
  * Structure to represent an instance defined as: (inputVector, label)
  */
 
-typedef struct Instance {
-    Tensor data; /**< Input vector (data fed to the neural network) */
-    int label; /**< Label associated to the input vector */
-} Instance;
+class Instance {
+private:
+    Tensor* data; /**< Input vector (data fed to the neural network) */
+    float* labelOneHot; /**< Label associated to the input vector in a one hot representation. It's shared between instances so it should not be deleted */
+public:
+    Instance(Tensor* data, float* labelOneHot);
+    Tensor* getData();
+    float* getOneHotLabel();
+};
+
+
 
 #endif

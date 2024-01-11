@@ -31,12 +31,14 @@ public:
     int getOutputDim();
     int getInputSize(int dim);
     int getOutputSize(int dim);
-    Tensor* getActivationDerivatives(const Tensor& input);
+    Tensor* getActivationDerivatives(const Tensor &input);
     Tensor* getActivationValues(const Tensor &input);
+    const std::vector<int> & getOutputShape();
 
     virtual Tensor* getOutput(const Tensor &input) = 0;
-    virtual void adjustParams(int batchSize, float learningRate, Tensor** currentCostDerivatives, Tensor** prevLayerOutput) = 0;
+    virtual void adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput) = 0;
     virtual Tensor* getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) = 0;
+    virtual Tensor* getPreActivationDerivatives() = 0;
     virtual Tensor* getPreActivationValues(const Tensor &tensor) = 0;
 };
 #endif

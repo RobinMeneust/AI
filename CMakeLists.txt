@@ -15,6 +15,9 @@ add_executable(${PROJECT_NAME} src/main.cpp src/NeuralNetwork.cpp src/DenseLayer
         src/Identity.cpp
         include/Tensor.h
         src/Tensor.cpp
-        src/Layer.cpp)
+        src/Layer.cpp
+        src/Instance.cpp
+        src/Batch.cpp
+        src/Batch.h)
 
 target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} )
