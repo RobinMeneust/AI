@@ -167,12 +167,12 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10]) 
  * @param targets Array containing the one hot representation of the target outputs per class
  * @return List of batches generated
  */
-std::vector<Batch> generateBatches(int batchSize, std::vector<Instance*> dataset) {
+std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> dataset) {
     //TODO: This function is too slow and we repeat the transformation several times on data that have already been transformed
     auto seed = (unsigned) time(nullptr);
     std::default_random_engine gen(seed);
 
-    std::vector<Batch> batches;
+    std::vector<Batch*> batches;
     std::shuffle(std::begin(dataset), std::end(dataset), gen);
 
     int instanceSize = dataset[0]->getData()->size();
@@ -192,7 +192,8 @@ std::vector<Batch> generateBatches(int batchSize, std::vector<Instance*> dataset
             k++;
         }
 
-        Batch batch = Batch(2, {batchSize, instanceSize}, batchDataHead, targets);
+        Batch* batch = new Batch(2, {batchSize, instanceSize}, batchDataHead, targets);
+        delete[] batchDataHead;
         batches.push_back(batch);
 
     }
@@ -231,7 +232,7 @@ int main()
     std::cout << "Training..." << std::endl;
     for(int epoch=0; epoch<nbEpochs; epoch++) {
         std::cout << "Generating batches..." << std::endl;
-        std::vector<Batch> batches = generateBatches(batchSize, trainingSet);
+        std::vector<Batch*> batches = generateBatches(batchSize, trainingSet);
 
         std::cout << "Training batches..." << std::endl;
         if(batches.empty()) {
@@ -245,7 +246,7 @@ int main()
 
 //        exit(EXIT_SUCCESS);
         for(auto &batch : batches) {
-            network->fit(batch);
+            network->fit(*batch);
         }
         std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(testSet) << std::endl;
     }

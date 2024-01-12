@@ -9,7 +9,7 @@
 
 Batch::Batch(Tensor data) : data(data), size(data.getDimSize(0)) {}
 
-Batch::Batch(int nDimData, std::vector<int> dimSizes, float *data, const std::vector<float *> &targets) : data(Tensor(nDimData, dimSizes, data)), targets(targets) {}
+Batch::Batch(int nDimData, std::vector<int> dimSizes, float *data, const std::vector<float *> &targets) : size(dimSizes[0]), data(Tensor(nDimData, dimSizes, data)), targets(targets) {}
 
 int Batch::getSize() const {
     return size;

@@ -26,15 +26,16 @@ private:
 
 public:
     Tensor(int nDim, const std::vector<int> &dimSizes);
+    Tensor(int nDim, const std::vector<int> &dimSizes, const float *data);
+    Tensor(Tensor const& copy);
     ~Tensor();
     float get(const std::vector<int>& coord) const;
     void set(const std::vector<int>& coord, float newValue);
     int getNDim() const;
     float * getData() const;
     std::vector<int> getDimSizes() const;
-    Tensor(int nDim, const std::vector<int> &dimSizes, const float *data);
     std::string toString();
-    int size();
+    int size() const;
     int getDimSize(int i) const;
     float* getStart(const std::vector<int> &coordStart) const;
     int getIndex(const std::vector<int> &coord) const;

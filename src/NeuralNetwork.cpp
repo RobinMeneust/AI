@@ -86,10 +86,10 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
     float* preActivationDerivativesData = preActivationDerivatives->getData();
 
     int p1=0;
-    int p2=0;
     for(int b=0; b<currentCostDerivatives->getDimSize(0); b++) {
         int p3 = 0;
         for (int i = 0; i < layers->getLayer(layerIndex - 1)->getOutputSize(0); i++) {
+            int p2=b;
             newData[p1] = 0.0f;
             for (int k = 0; k < layers->getLayer(layerIndex)->getOutputSize(0); k++) {
                 newData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
@@ -97,7 +97,6 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
                 p3++;
             }
             p1++;
-            p2--; // since p2 is for b and k and not i
         }
     }
 
@@ -149,7 +148,6 @@ void NeuralNetwork::fit(Batch batch) {
     Tensor* nextCostDerivatives = nullptr;
 
     for(int l=getNbLayers()-1; l>=0; l--) {
-        std::cout << "LAYER "<< l << std::endl;
         // Next cost derivatives computation
         if (l>0) {
             nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l);
@@ -159,7 +157,7 @@ void NeuralNetwork::fit(Batch batch) {
         Tensor* prevLayerOutput = l>0 ? outputs[l-1] : inputData;
         layers->getLayer(l)->adjustParams(learningRate, currentCostDerivatives, prevLayerOutput);
 
-        delete[] currentCostDerivatives;
+        delete currentCostDerivatives;
         currentCostDerivatives = nextCostDerivatives;
     }
 
@@ -179,8 +177,8 @@ void NeuralNetwork::fit(Batch batch) {
  * @return Derivative of the cost for all the components of the output vector
  */
 Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch &batch) {
-    float* newData = new float[batch.getSize()];
     int outputSize = layers->getLayer(getNbLayers()-1)->getOutputSize(0);
+    float* newData = new float[batch.getSize() * outputSize];
     float* predictionData = prediction.getData();
 
     int k=0;

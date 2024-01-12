@@ -27,6 +27,12 @@ Tensor::Tensor(int nDim, const std::vector<int> &dimSizes) : nDim(nDim), dimSize
     data = new float[stepSize]; // Here stepSize = product of all dim sizes
 }
 
+Tensor::Tensor(Tensor const& copy) : Tensor(copy.getNDim(), copy.getDimSizes()){
+    for(int i=0; i<copy.size(); i++) {
+        data[i] = copy.data[i];
+    }
+}
+
 Tensor::~Tensor() {
     delete[] data;
     delete[] strides;
@@ -103,7 +109,7 @@ std::string Tensor::toString() {
     return s;
 }
 
-int Tensor::size() {
+int Tensor::size() const {
     int size = 1;
     for(int i=0; i<getNDim(); i++) {
         size *= getDimSize(i);

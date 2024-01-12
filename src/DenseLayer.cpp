@@ -95,7 +95,8 @@ Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
 
     int k = 0;
     for(int i=0; i<getNbNeurons(); i++) {
-        float sum = biases[i];
+        //TODO: getBias(i) is NaN ?? And weights ??
+        outputData[i] = getBias(i);
         for(int j=0; j<getNbNeuronsPrevLayer(); j++) {
             outputData[i] += inputData[j] * weightsData[k];
             k++;
@@ -186,12 +187,12 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
     int batchSize = currentCostDerivatives->getDimSize(0);
 
     int k=0;
-    int p=0;
 
     for(int i=0; i<getNbNeurons(); i++) {
         int m=0;
         for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
             // weightsData[k] = w_i,j
+            int p=i;
 
             // Mean of the derivatives
             double deltaWeight = 0.02 * weightsData[k]; // weight decay, L2: lambda d(sum w^2)/dw = lambda * 2 * w where lambda = 0.01
@@ -202,7 +203,6 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
                 p++;
                 m++;
             }
-            p--; // j should not be incremented here (we are in 2D not 3D)
             deltaWeight /= (double) batchSize;
             deltaBias /= (double) batchSize;
 
@@ -212,6 +212,7 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
 
             weightsData[k] = newWeightValue;
             setBias(i, newBiasValue);
+            k++;
         }
     }
 }
