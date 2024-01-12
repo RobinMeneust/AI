@@ -240,17 +240,9 @@ int main()
             std::cerr << "The batches could not be generated. The batch size might be too large" << std::endl;
             exit(EXIT_FAILURE);
         }
-//
-//        Batch b = batches.back();
-//        Tensor* t = b.getInstance(0)->getData();
-//        std::cout << t->toString() << std::endl;
 
-//        exit(EXIT_SUCCESS);
-        int b = 0;
         for(auto &batch : batches) {
-            std::cout << "batch " << b << " / " << batches.size() << std::endl;
             network->fit(*batch);
-            b++;
         }
         std::string fileName = "log.txt";
         network->save(fileName);

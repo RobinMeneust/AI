@@ -33,7 +33,7 @@ public:
     ~NeuralNetwork();
     int getNbLayers();
     void addLayer(int nbNeurons, ActivationFunction* activationFunction);
-    float* evaluate(Tensor input);
+    float* evaluate(const Tensor &input);
     Tensor* getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex);
     void fit(Batch batch);
     Tensor* getCostDerivatives(const Tensor &prediction, const Batch &batch);

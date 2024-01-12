@@ -110,27 +110,10 @@ Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
 
             int p2 = b*getNbNeuronsPrevLayer();
             for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
-                float prevOutput = outputData[p];
+                float prevOutput = outputData[p]; // TODO: for debug, to be deleted
                 outputData[p] += inputData[p2] * weightsData[k];
                 k++;
                 p2++;
-                if (std::isnan(outputData[p])) {
-                    std::cout << "outputData[p] nan. Prev = " << prevOutput << std::endl;
-                    for(int m = 0; m < weights.size(); m++) {
-                        if(std::isnan(weightsData[m])) {
-                            std::cout << m/getNbNeurons() << " ";
-                            break;
-                        }
-                    }
-                    for(int m = 0; m < getNbNeurons(); m++) {
-                        if(std::isnan(biases[m])) {
-                            std::cout << m << " ";
-                            break;
-                        }
-                    }
-                    std::cout << std::endl;
-                    DebugBreak();
-                }
             }
             p++;
         }
@@ -234,12 +217,6 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
             for (int b = 0; b < batchSize; b++) {
                 deltaWeight += currentCostDerivativesData[p] * prevLayerOutputData[m]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
                 deltaBias += currentCostDerivativesData[p]; // delta = dC/da_k * da_k/dz_k
-                if(std::isnan(deltaBias) || std::isnan(deltaWeight)) {
-                    perror("ERROR: delta bias or delta weight is null");
-                    std::cout << "currentCostDerivativesData[p] = " << currentCostDerivativesData[p] << std::endl;
-                    std::cout << "prevLayerOutputData[m] = " << prevLayerOutputData[m] << std::endl;
-                    DebugBreak();
-                }
                 p++;
                 m++;
             }

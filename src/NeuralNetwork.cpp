@@ -53,8 +53,16 @@ void NeuralNetwork::addLayer(int nbNeurons, ActivationFunction *activationFuncti
  * @param input Input vector
  * @return Output vector
  */
-float *NeuralNetwork::evaluate(Tensor input) {
-    Tensor* output = new Tensor(1, {1}, input.getData());
+float *NeuralNetwork::evaluate(const Tensor &input) {
+    // We need the input to be considered as a batch of size 1
+
+    std::vector<int> dimSizes;
+    dimSizes.push_back(1);
+    for(int i=0; i<input.getNDim(); i++) {
+        dimSizes.push_back(input.getDimSize(i));
+    }
+
+    Tensor* output = new Tensor(input.getNDim()+1, dimSizes, input.getData());
     bool isFirstIter = true;
     Tensor* newOutput = nullptr;
 
@@ -77,7 +85,8 @@ float *NeuralNetwork::evaluate(Tensor input) {
  * @return Derivatives of the total cost in respect for the output of the layer (layerIndex - 1)
  */
 Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex) {
-    float* newData = new float[currentCostDerivatives->getDimSize(0) * layers->getLayer(layerIndex - 1)->getOutputSize(0)];
+    Tensor* nextCostDerivatives = new Tensor(2, {currentCostDerivatives->getDimSize(0), layers->getLayer(layerIndex - 1)->getOutputSize(0)});
+    float* nextCostDerivativesData = nextCostDerivatives->getData();
 
     Tensor* nextActivationDerivatives = layers->getLayer(layerIndex-1)->getActivationDerivatives(*weightedSumsPrevLayer);
     float* nextActivationDerivativesData = nextActivationDerivatives->getData();
@@ -91,14 +100,11 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
     for(int b=0; b<currentCostDerivatives->getDimSize(0); b++) {
         int p3 = 0;
         for (int i = 0; i < layers->getLayer(layerIndex - 1)->getOutputSize(0); i++) {
-            int p2=b*layers->getLayer(layerIndex - 1)->getOutputSize(0);
-            newData[p1] = 0.0f;
+            int p2=b*layers->getLayer(layerIndex)->getOutputSize(0);
+            nextCostDerivativesData[p1] = 0.0f;
             for (int k = 0; k < layers->getLayer(layerIndex)->getOutputSize(0); k++) {
-                newData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
-                if(std::isnan(newData[p1]) || std::isinf(newData[p1])) {
-                    std::cerr << "ERROR: newData["<<p1<<"] is nan or inf" << std::endl;
-                    DebugBreak();
-                }
+                float prevValueDebug = nextCostDerivativesData[p1]; //TODO:delete this line
+                nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
                 p2++;
                 p3++;
             }
@@ -106,8 +112,6 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
         }
     }
 
-    Tensor* nextCostDerivatives = new Tensor(2, {currentCostDerivatives->getDimSize(0), layers->getLayer(layerIndex - 1)->getOutputSize(0)}, newData);
-    delete[] newData;
     delete nextActivationDerivatives;
     return nextCostDerivatives;
 }
@@ -126,34 +130,17 @@ void NeuralNetwork::fit(Batch batch) {
     Tensor** weightedSums = new Tensor*[getNbLayers()];
     Tensor** outputs = new Tensor*[getNbLayers()];
 
-    std::cout << "layer 0" << std::endl;
     weightedSums[0] = layers->getLayer(0)->getPreActivationValues(*inputData);
     outputs[0] = layers->getLayer(0)->getActivationValues(*(weightedSums[0]));
 
     for(int i=1; i<getNbLayers(); i++) {
-        std::cout << "layer 1" << std::endl;
         weightedSums[i] = layers->getLayer(i)->getPreActivationValues(*(outputs[i-1]));
         outputs[i] = layers->getLayer(i)->getActivationValues(*(weightedSums[i]));
-    }
-
-    for(int i=0; i<outputs[getNbLayers()-1]->size(); i++) {
-        if(std::isnan(outputs[getNbLayers()-1]->getData()[i]) || std::isinf(outputs[getNbLayers()-1]->getData()[i])) {
-            std::cout << "outputs[getNbLayers()-1]->getData()["<<i<<"] is nan or inf. input of activation function was: " << weightedSums[getNbLayers()-1]->getData()[i] << std::endl;
-            DebugBreak();
-        }
     }
 
     // dC/da_k * da_k/dz_k
     Tensor* currentCostDerivatives = getCostDerivatives(*(outputs[getNbLayers()-1]), batch); // dC/da_k
     float* currentCostDerivativesData = currentCostDerivatives->getData();
-
-
-    for(int i=0; i<currentCostDerivatives->size(); i++) {
-        if(std::isnan(currentCostDerivativesData[i]) || std::isinf(std::isnan(currentCostDerivativesData[i]))) {
-            std::cerr << "ERROR: currentCostDerivativesData["<<i<<"] is nan or inf" << std::endl;
-            DebugBreak();
-        }
-    }
 
     Tensor* activationDerivatives = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(*weightedSums[getNbLayers()-1]);
     float* activationDerivativesData = activationDerivatives->getData();
@@ -162,7 +149,7 @@ void NeuralNetwork::fit(Batch batch) {
 
 
     float invSize = 1.0f/layers->getLayer(getNbLayers()-1)->getOutputSize(0);
-    for(int i=0; i<batch.getSize() * layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
+    for(int i=0; i<currentCostDerivatives->size(); i++) {
         currentCostDerivativesData[i] *= invSize * activationDerivativesData[i];
     }
 
@@ -172,19 +159,10 @@ void NeuralNetwork::fit(Batch batch) {
     Tensor* nextCostDerivatives = nullptr;
 
     for(int l=getNbLayers()-1; l>=0; l--) {
-        std::cout << "layer " << l << std::endl;
         // Next cost derivatives computation
         if (l>0) {
             nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l);
-            for(int i=0; i<nextCostDerivatives->size(); i++) {
-                if(std::isnan(nextCostDerivatives->getData()[i]) || std::isinf(nextCostDerivatives->getData()[i])) {
-                    std::cerr << "ERROR: nextCostDerivatives->getData()["<<i<<"] is nan or inf" << std::endl;
-                    DebugBreak();
-                }
-            }
         }
-
-
 
         // Adjust the weights and biases of the current layer
         Tensor* prevLayerOutput = l>0 ? outputs[l-1] : inputData;
@@ -213,15 +191,6 @@ Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch 
     int outputSize = layers->getLayer(getNbLayers()-1)->getOutputSize(0);
     float* newData = new float[batch.getSize() * outputSize];
     float* predictionData = prediction.getData();
-
-    for(int i=0; i<prediction.size(); i++) {
-        if (std::isnan(predictionData[i]) || std::isinf(predictionData[i])) {
-            std::cerr << "ERROR: predictionData["<<i<<"] = " << predictionData[i] << std::endl;
-            DebugBreak();
-        }
-    }
-
-
     int k=0;
     for(int b=0; b<batch.getSize(); b++) {
         for(int i=0; i<outputSize; i++) {
@@ -229,8 +198,6 @@ Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch 
             k++;
         }
     }
-
-
 
     Tensor* lossDerivative = new Tensor(2,{batch.getSize(), outputSize}, newData); // The size should be given in the parameters instead of being hard coded
     delete[] newData;

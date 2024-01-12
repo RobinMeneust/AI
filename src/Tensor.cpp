@@ -126,7 +126,7 @@ int Tensor::size() const {
 
 int Tensor::getDimSize(int i) const {
     if(i<0 || i>=getNDim()) {
-        perror("ERROR: dimension out of bound in getDimSize");
+        std::cerr << "ERROR: dimension out of bound in getDimSize" << std::endl;
         exit(EXIT_FAILURE);
     }
     return dimSizes[i];
