@@ -40,5 +40,6 @@ public:
     virtual Tensor* getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) = 0;
     virtual Tensor* getPreActivationDerivatives() = 0;
     virtual Tensor* getPreActivationValues(const Tensor &tensor) = 0;
+    virtual std::string toString() = 0;
 };
 #endif

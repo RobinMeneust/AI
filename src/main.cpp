@@ -169,7 +169,8 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10]) 
  */
 std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> dataset) {
     //TODO: This function is too slow and we repeat the transformation several times on data that have already been transformed
-    auto seed = (unsigned) time(nullptr);
+//    auto seed = (unsigned) time(nullptr);
+    int seed = 5;
     std::default_random_engine gen(seed);
 
     std::vector<Batch*> batches;
@@ -245,9 +246,14 @@ int main()
 //        std::cout << t->toString() << std::endl;
 
 //        exit(EXIT_SUCCESS);
+        int b = 0;
         for(auto &batch : batches) {
+            std::cout << "batch " << b << " / " << batches.size() << std::endl;
             network->fit(*batch);
+            b++;
         }
+        std::string fileName = "log.txt";
+        network->save(fileName);
         std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(testSet) << std::endl;
     }
     std::cout << "training done" << std::endl;

@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <bits/stdc++.h>
+#include <debugapi.h>
 
 /**
  * Create a dense neuron layer
@@ -25,7 +26,8 @@ DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction
     float lowerBound = -upperBound;
 
     // random generator
-    std::default_random_engine gen;
+    int seed = 5;
+    std::default_random_engine gen(seed);
     std::uniform_real_distribution<float> distribution(lowerBound,upperBound);
 
 	biases = new float[nbNeurons];
@@ -87,21 +89,53 @@ int DenseLayer::getNbNeuronsPrevLayer() {
  */
 
 Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
-    Tensor* output = new Tensor(1, {getNbNeurons()});
+    Tensor* output = new Tensor(2, {input.getDimSize(0),getNbNeurons()});
 
     float* outputData = output->getData();
     float* weightsData = weights.getData();
     float* inputData = input.getData();
 
-    int k = 0;
-    for(int i=0; i<getNbNeurons(); i++) {
-        //TODO: getBias(i) is NaN ?? And weights ??
-        outputData[i] = getBias(i);
-        for(int j=0; j<getNbNeuronsPrevLayer(); j++) {
-            outputData[i] += inputData[j] * weightsData[k];
-            k++;
+
+
+    for(int b=0; b<input.getDimSize(0); b++) {
+        int k = 0;
+        int p = getNbNeurons() * b;
+        for (int i = 0; i < getNbNeurons(); i++) {
+            //TODO: getBias(i) is NaN ?? And weights ??
+            outputData[p] = getBias(i);
+            if (std::isnan(outputData[p])) {
+                std::cout << "outputData[p] nan. getBias("<<i<<") = "<< getBias(i) << std::endl;
+                DebugBreak();
+            }
+
+            int p2 = b*getNbNeuronsPrevLayer();
+            for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
+                float prevOutput = outputData[p];
+                outputData[p] += inputData[p2] * weightsData[k];
+                k++;
+                p2++;
+                if (std::isnan(outputData[p])) {
+                    std::cout << "outputData[p] nan. Prev = " << prevOutput << std::endl;
+                    for(int m = 0; m < weights.size(); m++) {
+                        if(std::isnan(weightsData[m])) {
+                            std::cout << m/getNbNeurons() << " ";
+                            break;
+                        }
+                    }
+                    for(int m = 0; m < getNbNeurons(); m++) {
+                        if(std::isnan(biases[m])) {
+                            std::cout << m << " ";
+                            break;
+                        }
+                    }
+                    std::cout << std::endl;
+                    DebugBreak();
+                }
+            }
+            p++;
         }
     }
+
     return output;
 }
 
@@ -192,7 +226,7 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
         int m=0;
         for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
             // weightsData[k] = w_i,j
-            int p=i;
+            int p=i*batchSize;
 
             // Mean of the derivatives
             double deltaWeight = 0.02 * weightsData[k]; // weight decay, L2: lambda d(sum w^2)/dw = lambda * 2 * w where lambda = 0.01
@@ -200,6 +234,12 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
             for (int b = 0; b < batchSize; b++) {
                 deltaWeight += currentCostDerivativesData[p] * prevLayerOutputData[m]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
                 deltaBias += currentCostDerivativesData[p]; // delta = dC/da_k * da_k/dz_k
+                if(std::isnan(deltaBias) || std::isnan(deltaWeight)) {
+                    perror("ERROR: delta bias or delta weight is null");
+                    std::cout << "currentCostDerivativesData[p] = " << currentCostDerivativesData[p] << std::endl;
+                    std::cout << "prevLayerOutputData[m] = " << prevLayerOutputData[m] << std::endl;
+                    DebugBreak();
+                }
                 p++;
                 m++;
             }
@@ -229,4 +269,20 @@ Tensor *DenseLayer::getWeights() {
 
 Tensor *DenseLayer::getPreActivationDerivatives() {
     return &weights;
+}
+
+std::string DenseLayer::toString() {
+    std::string s = "";
+    for(int i=0; i<getOutputSize(0); i++) {
+        s.append("(neuron ");
+        s.append(std::to_string(i));
+        s.append(")   Bias = ");
+        s.append(std::to_string(getBias(i)));
+        s.append("   |   Weights: ");
+        for(int j=0; j<getNbNeuronsPrevLayer(); j++) {
+            s.append(std::to_string(getWeight(i,j)));
+            s.append(" ");
+        }
+    }
+    return s;
 }

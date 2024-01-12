@@ -44,11 +44,11 @@ int Layer::getOutputSize(int dim) {
  * @return Derivatives tensor
  */
 Tensor* Layer::getActivationDerivatives(const Tensor& input) {
-    return activationFunction->getDerivatives(input);
+    return activationFunction->getDerivatives(input, input.getDimSize(0));
 }
 
 Tensor* Layer::getActivationValues(const Tensor &input) {
-    return activationFunction->getValues(input);
+    return activationFunction->getValues(input, input.getDimSize(0));
 }
 
 const std::vector<int> & Layer::getOutputShape() {

@@ -16,14 +16,21 @@ Tensor::Tensor(int nDim, const std::vector<int> &dimSizes) : nDim(nDim), dimSize
         exit(EXIT_FAILURE);
     }
 
-    int stepSize = 1;
-    int j=nDim-1;
+//    int stepSize = 1;
+//    int j=nDim-1;
+//
+//    for(int i=0; i<nDim; i++) {
+//        strides[j] = stepSize;
+//        stepSize *= dimSizes[i];
+//        j--;
+//    }
 
-    for(int i=0; i<nDim; i++) {
-        strides[j] = stepSize;
+    int stepSize = 1;
+    for(int i=nDim-1; i>=0; i--) {
+        strides[i] = stepSize;
         stepSize *= dimSizes[i];
-        j--;
     }
+
     data = new float[stepSize]; // Here stepSize = product of all dim sizes
 }
 

@@ -40,5 +40,6 @@ public:
     Tensor* getPreActivationDerivatives();
     Tensor* getPreActivationValues(const Tensor &tensor);
     Tensor* getWeights();
+    std::string toString();
 };
 #endif

@@ -8,6 +8,8 @@
 #include "../include/neuralNetwork.h"
 #include <iostream>
 #include <fstream>
+#include <cmath>
+#include <debugapi.h>
 
 /**
  * Default constructor for the neural network
@@ -89,10 +91,14 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
     for(int b=0; b<currentCostDerivatives->getDimSize(0); b++) {
         int p3 = 0;
         for (int i = 0; i < layers->getLayer(layerIndex - 1)->getOutputSize(0); i++) {
-            int p2=b;
+            int p2=b*layers->getLayer(layerIndex - 1)->getOutputSize(0);
             newData[p1] = 0.0f;
             for (int k = 0; k < layers->getLayer(layerIndex)->getOutputSize(0); k++) {
                 newData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+                if(std::isnan(newData[p1]) || std::isinf(newData[p1])) {
+                    std::cerr << "ERROR: newData["<<p1<<"] is nan or inf" << std::endl;
+                    DebugBreak();
+                }
                 p2++;
                 p3++;
             }
@@ -120,38 +126,65 @@ void NeuralNetwork::fit(Batch batch) {
     Tensor** weightedSums = new Tensor*[getNbLayers()];
     Tensor** outputs = new Tensor*[getNbLayers()];
 
-    weightedSums[0] = layers->getLayer(0)->getPreActivationValues(*(batch.getData()));
+    std::cout << "layer 0" << std::endl;
+    weightedSums[0] = layers->getLayer(0)->getPreActivationValues(*inputData);
     outputs[0] = layers->getLayer(0)->getActivationValues(*(weightedSums[0]));
 
     for(int i=1; i<getNbLayers(); i++) {
+        std::cout << "layer 1" << std::endl;
         weightedSums[i] = layers->getLayer(i)->getPreActivationValues(*(outputs[i-1]));
-        outputs[i]= layers->getLayer(i)->getActivationValues(*(weightedSums[i]));
+        outputs[i] = layers->getLayer(i)->getActivationValues(*(weightedSums[i]));
+    }
+
+    for(int i=0; i<outputs[getNbLayers()-1]->size(); i++) {
+        if(std::isnan(outputs[getNbLayers()-1]->getData()[i]) || std::isinf(outputs[getNbLayers()-1]->getData()[i])) {
+            std::cout << "outputs[getNbLayers()-1]->getData()["<<i<<"] is nan or inf. input of activation function was: " << weightedSums[getNbLayers()-1]->getData()[i] << std::endl;
+            DebugBreak();
+        }
     }
 
     // dC/da_k * da_k/dz_k
     Tensor* currentCostDerivatives = getCostDerivatives(*(outputs[getNbLayers()-1]), batch); // dC/da_k
     float* currentCostDerivativesData = currentCostDerivatives->getData();
 
-    int k=0;
+
+    for(int i=0; i<currentCostDerivatives->size(); i++) {
+        if(std::isnan(currentCostDerivativesData[i]) || std::isinf(std::isnan(currentCostDerivativesData[i]))) {
+            std::cerr << "ERROR: currentCostDerivativesData["<<i<<"] is nan or inf" << std::endl;
+            DebugBreak();
+        }
+    }
+
     Tensor* activationDerivatives = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(*weightedSums[getNbLayers()-1]);
     float* activationDerivativesData = activationDerivatives->getData();
 
+
+
+
     float invSize = 1.0f/layers->getLayer(getNbLayers()-1)->getOutputSize(0);
-    for(int b=0; b<batch.getSize(); b++) {
-        for(int i=0; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
-            currentCostDerivativesData[k] *= invSize * activationDerivativesData[k];
-            k++;
-        }
+    for(int i=0; i<batch.getSize() * layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
+        currentCostDerivativesData[i] *= invSize * activationDerivativesData[i];
     }
+
+
     delete activationDerivatives;
 
     Tensor* nextCostDerivatives = nullptr;
 
     for(int l=getNbLayers()-1; l>=0; l--) {
+        std::cout << "layer " << l << std::endl;
         // Next cost derivatives computation
         if (l>0) {
             nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l);
+            for(int i=0; i<nextCostDerivatives->size(); i++) {
+                if(std::isnan(nextCostDerivatives->getData()[i]) || std::isinf(nextCostDerivatives->getData()[i])) {
+                    std::cerr << "ERROR: nextCostDerivatives->getData()["<<i<<"] is nan or inf" << std::endl;
+                    DebugBreak();
+                }
+            }
         }
+
+
 
         // Adjust the weights and biases of the current layer
         Tensor* prevLayerOutput = l>0 ? outputs[l-1] : inputData;
@@ -181,6 +214,14 @@ Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch 
     float* newData = new float[batch.getSize() * outputSize];
     float* predictionData = prediction.getData();
 
+    for(int i=0; i<prediction.size(); i++) {
+        if (std::isnan(predictionData[i]) || std::isinf(predictionData[i])) {
+            std::cerr << "ERROR: predictionData["<<i<<"] = " << predictionData[i] << std::endl;
+            DebugBreak();
+        }
+    }
+
+
     int k=0;
     for(int b=0; b<batch.getSize(); b++) {
         for(int i=0; i<outputSize; i++) {
@@ -188,6 +229,8 @@ Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch 
             k++;
         }
     }
+
+
 
     Tensor* lossDerivative = new Tensor(2,{batch.getSize(), outputSize}, newData); // The size should be given in the parameters instead of being hard coded
     delete[] newData;
@@ -205,32 +248,7 @@ void NeuralNetwork::setLearningRate(float newValue) {
     }
     learningRate = newValue;
 }
-//
-///**
-// * Save the current network in a file. For now it's use for debug purposes only. The save file can't be loaded.
-// * @param fileName Name of the file where the network should be saved
-// */
-//void NeuralNetwork::save(std::string fileName) {
-//    std::ofstream out(fileName);
-//
-//    if(!out.is_open()) {
-//        std::cerr<< "Failed to create save file" <<std::endl;
-//        return;
-//    }
-//
-//    for(int l=0; l<getNbLayers(); l++) {
-//        out << "Layer " << l << ": " << std::endl;
-//        for(int i=0; i<layers->getLayer(l)->getNbNeurons(); i++) {
-//            out << "(neuron " << i << ")   Bias = " << layers->getLayer(l)->getBias(i) << "   |   Weights: ";
-//            for(int j=0; j<layers->getLayer(l)->getNbNeuronsPrevLayer(); j++) {
-//                out << layers->getLayer(l)->getWeight(i,j) << " ";
-//            }
-//        }
-//        out << std::endl << std::endl;
-//    }
-//    out.flush();
-//    out.close();
-//}
+
 
 /**
  * Predict the label of the given input
@@ -262,4 +280,26 @@ float NeuralNetwork::getAccuracy(const std::vector<Instance*> &testSet) {
         }
     }
     return ((float)validPredictions/(float)testSet.size());
+}
+
+
+/**
+ * Save the current network in a file. For now it's use for debug purposes only. The save file can't be loaded.
+ * @param fileName Name of the file where the network should be saved
+ */
+void NeuralNetwork::save(std::string fileName) {
+    std::ofstream out(fileName);
+
+    if(!out.is_open()) {
+        std::cerr<< "Failed to create save file" <<std::endl;
+        return;
+    }
+
+    for(int l=0; l<getNbLayers(); l++) {
+        out << "Layer " << l << ": " << std::endl;
+        out << layers->getLayer(l)->toString();
+        out << std::endl << std::endl;
+    }
+    out.flush();
+    out.close();
 }

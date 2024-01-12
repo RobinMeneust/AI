@@ -41,6 +41,7 @@ public:
 //    void save(std::string fileName);
     int predict(Tensor input);
     float getAccuracy(const std::vector<Instance*> &testSet);
+    void save(std::string fileName);
 };
 
 #endif
