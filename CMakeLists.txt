@@ -7,7 +7,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
-add_executable(${PROJECT_NAME} src/main.cpp src/NeuralNetwork.cpp src/DenseLayer.cpp src/LayersList.cpp src/Sigmoid.cpp src/Softmax.cpp src/Relu.cpp
+add_executable(${PROJECT_NAME}
+        src/main.cpp
+        src/NeuralNetwork.cpp
+        src/DenseLayer.cpp
+        src/LayersList.cpp
+        src/Sigmoid.cpp
+        src/Softmax.cpp
+        src/Relu.cpp
         include/Instance.h
         include/LeakyRelu.h
         src/LeakyRelu.cpp
@@ -17,7 +24,7 @@ add_executable(${PROJECT_NAME} src/main.cpp src/NeuralNetwork.cpp src/DenseLayer
         src/Tensor.cpp
         src/Layer.cpp
         src/Instance.cpp
-        src/Batch.cpp
-        src/Batch.h)
+        include/Batch.h
+        src/Batch.cpp)
 
 target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} )
