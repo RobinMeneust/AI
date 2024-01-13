@@ -95,15 +95,20 @@ Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
     float* weightsData = weights.getData();
     float* inputData = input.getData();
 
+    int nbNeuronsPrevLayer = getNbNeuronsPrevLayer();
+    int nbNeurons = getNbNeurons();
+
     for(int b=0; b<input.getDimSize(0); b++) {
         int k = 0;
-        int p = getNbNeurons() * b;
-        for (int i = 0; i < getNbNeurons(); i++) {
+        int p = nbNeurons * b;
+
+        int p2Init = b*nbNeuronsPrevLayer;
+        for (int i = 0; i < nbNeurons; i++) {
             outputData[p] = getBias(i);
-            int p2 = b*getNbNeuronsPrevLayer();
-            for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
+            int p2 = p2Init;
+
+            for (int j = 0; j < nbNeuronsPrevLayer; j++) {
                 outputData[p] += inputData[p2] * weightsData[k];
-//                std::cout << outputData[p] << " "<< inputData[p2] << " "<< weightsData[k] << std::endl;
                 k++;
                 p2++;
             }
@@ -193,10 +198,12 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
     float* weightsData = weights.getData();
     float* currentCostDerivativesData = currentCostDerivatives->getData();
     float* prevLayerOutputData = prevLayerOutput->getData();
+
     int batchSize = currentCostDerivatives->getDimSize(0);
+    int currentLayerOutputDim1 = currentCostDerivatives->getDimSize(1);
+    int prevLayerOutputDim1 = prevLayerOutput->getDimSize(1);
 
     int k=0;
-
     for(int i=0; i<getNbNeurons(); i++) {
         for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
             int m=j;
@@ -209,8 +216,8 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
             for (int b = 0; b < batchSize; b++) {
                 deltaWeight += currentCostDerivativesData[p] * prevLayerOutputData[m]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
                 deltaBias += currentCostDerivativesData[p]; // delta = dC/da_k * da_k/dz_k
-                p += currentCostDerivatives->getDimSize(1);
-                m += prevLayerOutput->getDimSize(1);
+                p += currentLayerOutputDim1;
+                m += prevLayerOutputDim1;
             }
             deltaWeight /= (double) batchSize;
             deltaBias /= (double) batchSize;

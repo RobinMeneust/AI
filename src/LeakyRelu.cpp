@@ -7,6 +7,7 @@
 
 #include "../include/LeakyRelu.h"
 #include <iostream>
+#include <chrono>
 
 /**
  * For all component xi of the input vector, calculate LeakyReLU(xi) and return a vector that contains the result for each xi
