@@ -1,7 +1,7 @@
 /**
  * @file Softmax.cpp
  * @author Robin MENEUST
- * @brief Methods of the class Softmax used by a neuron layer. This class defines both the Softmax function and its derivatives
+ * @brief Methods of the class Softmax used by a layer of an AI model. This class defines both the Softmax function and its derivatives
  * @date 2023-12-15
  */
 
@@ -11,7 +11,7 @@
 
 /**
  * Get the max of abs(xi) for all xi in the input vector. Used to normalized the input of Softmax to avoid overflow
- * @param input Input vector
+ * @param input Input tensor whose rank is greater than or equal to 1
  * @param size Size of the input vector
  * @return Max of the absolute values
  */
@@ -27,9 +27,11 @@ float Softmax::getAbsMax(float* input, int size) {
 }
 
 /**
- * For all component xi of the input vector, calculate Softmax(xi) and return a vector that contains the result for each xi
- * @param input Input vector
- * @return Vector of the output of the function for each component of the input vector
+ * For all component xi of the input tensor, calculate Softmax(xi) and return a tensor that contains the result for each xi
+ * @remark Softmax will be applied on each of the input tensor components. The denominator will be the sum of exp(xi) for all the xi component of the same batch (defined by the first dimension coordinate).
+ * @param input Input tensor whose rank is greater than or equal to 1.
+ * @param batchSize Size of the batch.
+ * @return Tensor of the output of the function for each component of the input tensor
  */
 Tensor * Softmax::getValues(const Tensor &input, int batchSize) {
     // Used to avoid overflow. The output doesn't change because e^(a*x) / (sum e^(a*x)) = (e^a * e^x) / (e^a * sum e^x) = e^x / (sum e^x)
@@ -71,9 +73,11 @@ Tensor * Softmax::getValues(const Tensor &input, int batchSize) {
 }
 
 /**
- * For all component xi of the input vector, calculate the derivative dSoftmax(xi)/dxi and return a vector that contains the result for each xi. Note here that we don't consider dSoftmax(xi)/dxk i != k to avoid increasing drastically the training time (it might not be a good practice)
- * @param input Input vector
- * @return Vector of the derivative of the function for each component of the input vector
+ * For all component xi of the input tensor, calculate the derivative dSoftmax(xi)/dxi and return a tensor that contains the result for each xi. Note here that we don't consider dSoftmax(xi)/dxk i != k to avoid increasing drastically the training time (it might not be a good practice)
+ * @remark The derivative is calculated in such a way that we consider that softmax is applied on each of the input tensor components. The denominator will be the sum of exp(xi) for all the xi component of the same batch (defined by the first dimension coordinate).
+ * @param input Input tensor whose rank is greater than or equal to 1
+ * @param batchSize Size of the batch.
+ * @return Tensor of the derivatives of the function for each component of the input tensor
  */
 Tensor* Softmax::getDerivatives(const Tensor &input, int batchSize) {
     Tensor* output = getValues(input, batchSize);

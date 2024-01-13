@@ -19,8 +19,8 @@
 class Tensor {
 private:
     int nDim; /**< Number of dimensions, also called the rank of a tensor. In the comments of this project I use both "dimension" and "rank" */
-    std::vector<int> dimSizes; /** < Size of each dimension */
-    int* strides; /** < Strides for each dimension (used to get and set data with coordinates) */
+    std::vector<int> dimSizes; /**< Size of each dimension */
+    int* strides; /**< Strides for each dimension (used to get and set data with coordinates) */
     float* data; /**< Data (in a flattened representation) */
 
 public:

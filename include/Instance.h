@@ -18,7 +18,7 @@
 
 class Instance {
 private:
-    Tensor* data; /**< Input vector (data fed to the AI model) */
+    Tensor* data; /**< Input tensor (data that will be fed to the AI model) */
     float* labelOneHot; /**< Label associated to the input vector in a one hot representation. It's shared between instances so it should not be deleted when an instance is deleted */
 public:
     Instance(Tensor* data, float* labelOneHot);

@@ -14,7 +14,7 @@
 
 /**
  * @class LayersList
- * @brief List of layers of an AI model
+ * @brief List of layers of an AI model. This class check if the shape of the output of all layers matches with the input shape of the next layer
  */
 
 class LayersList {
@@ -22,7 +22,7 @@ private:
     std::vector<Layer*> layers; /**< List of layers */
 public:
     LayersList() = default;
-    ~LayersList();
+    ~LayersList() = default;
     void add(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction);
     Layer* getLayer(int i);
     int getNbLayers();

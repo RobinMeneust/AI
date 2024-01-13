@@ -9,17 +9,7 @@
 #include "../include/DenseLayer.h"
 
 /**
- * Free memory space occupied by the neuron layers
- */
-LayersList::~LayersList() {
-    for(int i=0; i<getNbLayers(); i++) {
-        delete layers[i];
-    }
-    layers.clear();
-}
-
-/**
- * Add a neuron layer to the list of layers
+ * Add a neuron layer to the list of layers. This function will change in the near future since it can only creates Dense layers (even the arguments name are not consistent)
  * @param nbNeurons Number of neurons in the layer
  * @param nbNeuronsPrevLayer Number of neurons of the previous layer (input size)
  * @param activationFunction Activation function used (Softmax, Sigmoid...)

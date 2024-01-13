@@ -20,7 +20,8 @@ class ActivationFunction {
 public:
     /**
      * Let f be the activation function. If input is a tensor (whose dimension is accepted by the function) then for all component xi of the input tensor, calculate f(xi) and return a tensor, whose size is the same as the input, that contains the result for each xi.
-     * @param Tensor Input tensor
+     * @param input Input tensor
+     * @param batchSize Size of the batch. It's not used for this function, but it is required by the parent class.
      * @return Tensor of the outputs of the function for each component of the input tensor
      */
     virtual Tensor *getValues(const Tensor &input, int batchSize) = 0;
@@ -28,6 +29,7 @@ public:
     /**
      * Let f be the activation function. If input is a tensor (whose dimension is accepted by the function) then for all component xi of the input tensor, calculate df(xi)/dxi and return a tensor, whose size is the same as the input, that contains the result for each xi.
      * @param input Input tensor
+     * @param batchSize Size of the batch. It's not used for this function, but it is required by the parent class.
      * @return Tensor of the derivative of the function for each component of the input tensor
      */
     virtual Tensor* getDerivatives(const Tensor &input, int batchSize) = 0;

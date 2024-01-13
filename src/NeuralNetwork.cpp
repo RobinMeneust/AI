@@ -8,14 +8,13 @@
 #include "../include/neuralNetwork.h"
 #include <iostream>
 #include <fstream>
-#include <cmath>
-#include <debugapi.h>
-#include <chrono>
 
 /**
  * Default constructor for the neural network
- * @param inputSize Size of the input vector
+ * @param inputSize Size of the input tensor
+ * @remarks This will be changed so that we can accept a multi-dimensional input
  */
+
 NeuralNetwork::NeuralNetwork(int inputSize) : inputSize(inputSize), learningRate(0.1), layers(new LayersList()) {}
 
 /**
@@ -51,12 +50,12 @@ void NeuralNetwork::addLayer(int nbNeurons, ActivationFunction *activationFuncti
 
 /**
  * Get the output of the neural network for the given input
- * @param input Input vector
- * @return Output vector
+ * @param input Input tensor
+ * @return Output tensor
  */
-float *NeuralNetwork::evaluate(const Tensor &input) {
+Tensor * NeuralNetwork::evaluate(const Tensor &input) {
     // We need the input to be considered as a batch of size 1
-    // TODO: Move it to main(), we should only accept one representation: a tensor whose first dim is the batch size
+    // TODO: Move some of this function code to main(), we should only accept one representation: a tensor whose first dim is the batch size
     std::vector<int> dimSizes;
     dimSizes.push_back(1);
     for(int i=0; i<input.getNDim(); i++) {
@@ -75,7 +74,7 @@ float *NeuralNetwork::evaluate(const Tensor &input) {
             delete output;
         output = newOutput;
     }
-    return output->getData();
+    return output;
 }
 
 /**
@@ -193,9 +192,10 @@ void NeuralNetwork::fit(Batch batch) {
 /**
  * Calculate the derivative d MSE / d prediction[i] for all i
  * @param prediction Output of the neural network
- * @param expectedResult Target output
- * @return Derivative of the cost for all the components of the output vector
+ * @param batch Batch of instances (input data + target output)
+ * @return Derivative of the cost for all the components of the output tensor
  */
+
 Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch &batch) {
     int outputSize = layers->getLayer(getNbLayers()-1)->getOutputSize(0);
     float* newData = new float[batch.getSize() * outputSize];
@@ -228,17 +228,18 @@ void NeuralNetwork::setLearningRate(float newValue) {
 
 /**
  * Predict the label of the given input
- * @param input Input vector
- * @return Label of the input vector: number between 0 and the size of the last layer - 1, depending on which component of the output was the highest
+ * @param input Input tensor
+ * @return Label of the input tensor: number between 0 and the size of the last layer - 1, depending on which component of the output was the highest
  */
 int NeuralNetwork::predict(const Tensor &input) {
-    float* output = evaluate(input);
+    Tensor* output = evaluate(input);
+    float* outputData = output->getData();
     int i_max = 0;
     for(int i=1; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
-        if(output[i] > output[i_max])
+        if(outputData[i] > outputData[i_max])
             i_max = i;
     }
-    delete[] output;
+    delete output;
     return i_max;
 }
 
@@ -260,10 +261,10 @@ float NeuralNetwork::getAccuracy(const std::vector<Instance*> &testSet) {
 
 
 /**
- * Save the current network in a file. For now it's use for debug purposes only. The save file can't be loaded.
+ * Save the current network in a file. For now it's used for debug purposes only. The save file can't be loaded.
  * @param fileName Name of the file where the network should be saved
  */
-void NeuralNetwork::save(std::string fileName) {
+void NeuralNetwork::save(const std::string& fileName) {
     std::ofstream out(fileName);
 
     if(!out.is_open()) {

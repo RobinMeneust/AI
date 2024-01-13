@@ -38,7 +38,6 @@ public:
     Tensor* getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex);
     Tensor* getPreActivationDerivatives();
     Tensor* getPreActivationValues(const Tensor &tensor);
-    Tensor* getWeights();
     std::string toString();
 };
 #endif

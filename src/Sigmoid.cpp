@@ -1,18 +1,18 @@
 /**
  * @file Sigmoid.cpp
  * @author Robin MENEUST
- * @brief Methods of the class Sigmoid used by a neuron layer. This class defines both the Sigmoid function and its derivatives
+ * @brief Methods of the class Sigmoid used by a layer of an AI model. This class defines both the Sigmoid function and its derivatives
  * @date 2023-12-15
  */
 
 #include "../include/Sigmoid.h"
 #include <cmath>
-#include <iostream>
 
 /**
- * For all component xi of the input vector, calculate Sigmoid(xi) and return a vector that contains the result for each xi
- * @param input Input vector
- * @return Vector of the output of the function for each component of the input vector
+ * For all component xi of the input tensor, calculate Sigmoid(xi) and return a tensor that contains the result for each xi
+ * @param input Input tensor whose rank is greater than or equal to 1
+ * @param batchSize Size of the batch. It's not used for this function, but it is required by the parent class.
+ * @return Tensor of the output of the function for each component of the input tensor
  */
 
 Tensor * Sigmoid::getValues(const Tensor &input, int batchSize) {
@@ -27,9 +27,10 @@ Tensor * Sigmoid::getValues(const Tensor &input, int batchSize) {
 }
 
 /**
- * For all component xi of the input vector, calculate the derivative dSigmoid(xi)/dxi and return a vector that contains the result for each xi.
- * @param input Input vector
- * @return Vector of the derivative of the function for each component of the input vector
+ * For all component xi of the input tensor, calculate the derivative dSigmoid(xi)/dxi and return a tensor that contains the result for each xi.
+ * @param input Input tensor whose rank is greater than or equal to 1
+ * @param batchSize Size of the batch. It's not used for this function, but it is required by the parent class.
+ * @return Tensor of the derivatives of the function for each component of the input tensor
  */
 
 Tensor* Sigmoid::getDerivatives(const Tensor &input, int batchSize) {

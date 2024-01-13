@@ -21,13 +21,11 @@ private:
     std::vector<float*> targets; /**< List of target output for each instance represented in a one-hot representation. It's a list of pointers that is not deleted when the batch is deleted */
     int size; /**< Size of the batch: number of instances in the batch */
 public:
-    Batch(Tensor data);
     Batch(int nDimData, std::vector<int> dimSizes, float *data, const std::vector<float *> &targets);
     ~Batch() = default;
     int getSize() const;
     float * getTarget(int i) const;
     Tensor *getData();
-    void addTarget(float* target);
 };
 
 #endif

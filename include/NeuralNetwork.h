@@ -33,7 +33,7 @@ public:
     ~NeuralNetwork();
     int getNbLayers();
     void addLayer(int nbNeurons, ActivationFunction* activationFunction);
-    float* evaluate(const Tensor &input);
+    Tensor * evaluate(const Tensor &input);
     Tensor* getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex);
     void fit(Batch batch);
     Tensor* getCostDerivatives(const Tensor &prediction, const Batch &batch);
@@ -41,7 +41,7 @@ public:
 //    void save(std::string fileName);
     int predict(const Tensor &input);
     float getAccuracy(const std::vector<Instance*> &testSet);
-    void save(std::string fileName);
+    void save(const std::string& fileName);
 };
 
 #endif

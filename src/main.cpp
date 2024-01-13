@@ -7,7 +7,6 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <ctime>
 #include <vector>
 #include "../include/neuralNetwork.h"
 #include <opencv2/opencv.hpp>
@@ -16,7 +15,6 @@
 #include <random>
 #include "../include/Softmax.h"
 #include "../include/LeakyRelu.h"
-#include "../include/Instance.h"
 #include <chrono>
 
 using namespace cv;
@@ -111,8 +109,9 @@ float* flatten(Mat matrix, int width, int height) {
 /**
  * Get a list of instances (instance data and label) by getting the list of dataset files and normalizing their data
  * @param isTestSet If true we look into the folder test/ otherwise it's train/
+ * @param expectedResult List of expected results per class in a one-hot representation. This must NOT be deleted since the values are not copied in the instance (it just keeps the address)
  * @param maxNbInstancesPerClass Max number of instances per class
- * @return List of instances
+ * @return List of instances of the dataset
  */
 std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], int maxNbInstancesPerClass) {
     std::vector<Instance*> instances;
@@ -155,7 +154,8 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], 
 /**
  * Get a list of instances (instance data and label) by getting the list of ALL the dataset files and normalizing their data
  * @param isTestSet If true we look into the folder test/ otherwise it's train/
- * @return List of instances
+ * @param expectedResult List of expected results per class in a one-hot representation. This must NOT be deleted since the values are not copied in the instance (it just keeps the address)
+ * @return List of instances of the dataset
  */
 std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10]) {
     return getDataset(isTestSet, expectedResult, INT32_MAX);
@@ -164,8 +164,7 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10]) 
 /**
  * Generate batches from the dataset instances and the target outputs
  * @param batchSize Number of instance per batch
- * @param dataset List of instances (label + data)
- * @param targets Array containing the one hot representation of the target outputs per class
+ * @param dataset List of instances (label in one-hot representation and data)
  * @return List of batches generated
  */
 std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> dataset) {

@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <bits/stdc++.h>
-#include <debugapi.h>
+
 
 /**
  * Create a dense neuron layer
@@ -43,7 +43,7 @@ DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction
 }
 
 /**
- * Copy a neuron layer
+ * Copy a dense neuron layer
  * @param copy Copied neuron layer
  */
 DenseLayer::DenseLayer(DenseLayer const& copy) : Layer({copy.inputShape[0]},{copy.outputShape[0]}, copy.activationFunction), weights(copy.weights), biases(nullptr) {
@@ -84,8 +84,8 @@ int DenseLayer::getNbNeuronsPrevLayer() {
 }
 
 /**
- * Get the weighted sums vector from the previous layer output
- * @return Weighted sums vector. Each component xi is the weighted sum of the ith neuron
+ * Get the weighted sums tensor from the previous layer output
+ * @return Weighted sums tensor. For each batch, each component xi is the weighted sum of the ith neuron
  */
 
 Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
@@ -121,9 +121,9 @@ Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
 
 
 /**
- * Get the output of a layer given the previous layer output (calculate the weighted sums and then the activation function)
- * @param input Vector of the previous layer output
- * @return Output vector of this layer
+ * Get the output of the layer given the previous layer output (calculate the weighted sums and then the activation function)
+ * @param input Tensor of the previous layer output
+ * @return Output tensor of this layer
  */
 Tensor* DenseLayer::getOutput(const Tensor &input) {
     Tensor* preActivationValues = getPreActivationValues(input);
@@ -191,8 +191,8 @@ void DenseLayer::setBias(int neuron, float newValue) {
 /**
  * Adjust the weights and biases depending on the gradient
  * @param learningRate Learning rate of the neural network (it's the speed, the strength of the variation: if it's high, one iteration may change a lot the parameters and if it's low, then it won't change it much)
- * @param currentCostDerivatives dC/dz_i, where C is the total cost and z_i is the output i of the current layer
- * @param prevLayerOutput Output of the previous layer in the network (it's the input of this layer)
+ * @param currentCostDerivatives Tensor containing dC/dz_i, where C is the total cost and z_i is the output i of the current layer
+ * @param prevLayerOutput Tensor containing the output of the previous layer (it's the input of this layer)
  */
 void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput) {
     float* weightsData = weights.getData();
@@ -234,11 +234,11 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
 }
 
 /**
- * Get the weight of the neuron currentLayerOutputIndex in the current layer that is associated to the neuron prevLayerOutputIndex in the previous layer
- * @remark This is less efficient than the function getPreActivationDerivatives() with no argument since here we need to recalculate the index of the element for every call
- * @param currentLayerOutputIndex
- * @param prevLayerOutputIndex
- * @return
+ * Get the derivative of the weighted sum for the neuron i of the current layer in respect for the input j (output of the previous layer). This is the weight w_i,j of the neuron currentLayerOutputIndex in the current layer that is associated to the neuron prevLayerOutputIndex in the previous layer
+ * @remark This is less efficient than the function getPreActivationDerivatives() with no argument since here we need to recalculate the index of the element for every call.
+ * @param currentLayerOutputIndex Index i (ith neuron of the current layer)
+ * @param prevLayerOutputIndex Index j (jth neuron of the previous layer)
+ * @return Weight w_i,j
  */
 Tensor* DenseLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) {
     Tensor* output = new Tensor(1, {1});
@@ -246,14 +246,18 @@ Tensor* DenseLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int
     return output;
 }
 
-Tensor *DenseLayer::getWeights() {
-    return &weights;
-}
-
+/**
+ * Get the derivative of the weighted sum for all i,j in respect for the input j (output of the previous layer). This is the weight w_i,j of the neuron currentLayerOutputIndex in the current layer that is associated to the neuron prevLayerOutputIndex in the previous layer
+ * @return Tensor of rank 2 containing all the weights weight w_i,j
+ */
 Tensor *DenseLayer::getPreActivationDerivatives() {
     return &weights;
 }
 
+/**
+ * Get a string representing the layer (list of neuron parameters)
+ * @return String representing the layer
+ */
 std::string DenseLayer::toString() {
     std::string s = "";
     for(int i=0; i<getNbNeurons(); i++) {
