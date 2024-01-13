@@ -242,16 +242,19 @@ Tensor *DenseLayer::getPreActivationDerivatives() {
 
 std::string DenseLayer::toString() {
     std::string s = "";
-    for(int i=0; i<getOutputSize(0); i++) {
+    for(int i=0; i<getNbNeurons(); i++) {
         s.append("(neuron ");
+        s.append("\n\t");
         s.append(std::to_string(i));
         s.append(")   Bias = ");
         s.append(std::to_string(getBias(i)));
+        s.append("\n\t");
         s.append("   |   Weights: ");
         for(int j=0; j<getNbNeuronsPrevLayer(); j++) {
             s.append(std::to_string(getWeight(i,j)));
             s.append(" ");
         }
+        s.append("\n");
     }
     return s;
 }

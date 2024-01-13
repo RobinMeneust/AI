@@ -103,7 +103,7 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
             nextCostDerivativesData[p1] = 0.0f;
             int p3 = i;
             for (int k = 0; k < layers->getLayer(layerIndex)->getOutputSize(0); k++) {
-                nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+                nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[p1]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
                 p2++;
                 p3+= preActivationDerivatives->getDimSize(1);
             }
@@ -172,7 +172,6 @@ void NeuralNetwork::fit(Batch batch) {
         // Next cost derivatives computation
         if (l>0) {
             nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l);
-//            std::cout << nextCostDerivatives->getData()[0] << std::endl;
         }
 
         // Adjust the weights and biases of the current layer
