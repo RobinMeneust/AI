@@ -12,7 +12,7 @@
 
 /**
  * @class Sigmoid
- * @brief Sigmoid function used by an neuron layer. This class defines both the Sigmoid function and its derivatives
+ * @brief Sigmoid function used by a layer of an AI model. This class defines both the Sigmoid function and its derivatives
  */
 
 class Sigmoid : public ActivationFunction {

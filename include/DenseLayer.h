@@ -13,14 +13,13 @@
 
 /**
  * @class DenseLayer
- * @brief Layer of neurons with the weight and bias associated to the previous layer
- * 
+ * @brief Fully connected layer of an AI model, it's composed of neurons with the weight and bias associated to the neurons of the previous layer
  */
 
 class DenseLayer : public Layer {
 private:
-    Tensor weights; /**< Matrix of all the weight of this layer */
-    float* biases; /**< List of all the biases of this layer */
+    Tensor weights; /**< Tensor of rank (dimension) 2 that contains all the weight of this layer. The first dimension size is the same as this layer number of neurons which is the first output dimension size. The second one is the same as the previous number of neurons */
+    float* biases; /**< List of all the biases of this layer. We might want to change the type from float* to Tensor in the future */
 
 public:
     DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction);

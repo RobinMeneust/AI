@@ -12,7 +12,7 @@
 
 /**
  * @class Identity
- * @brief Identity function used by an neuron layer. This class defines both the Identity function and its derivatives
+ * @brief Identity function used by a layer of an AI model. This class defines both the Identity function and its derivatives
  */
 
 class Identity : public ActivationFunction {

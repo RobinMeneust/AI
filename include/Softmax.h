@@ -12,7 +12,7 @@
 
 /**
  * @class Softmax
- * @brief Softmax function used by an neuron layer. This class defines both the Softmax function and its derivatives
+ * @brief Softmax function used by a layer of an AI model. This class defines both the Softmax function and its derivatives
  */
 
 class Softmax : public ActivationFunction {

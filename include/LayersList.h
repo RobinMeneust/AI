@@ -14,8 +14,7 @@
 
 /**
  * @class LayersList
- * @brief List of layers
- *
+ * @brief List of layers of an AI model
  */
 
 class LayersList {

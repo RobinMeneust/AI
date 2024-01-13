@@ -11,14 +11,15 @@
 #include "Instance.h"
 
 /**
- * Class representing a batch: a group of instances defined as: (inputTensor, targetOutputVector)
+ * @class Batch
+ * @brief Class representing a batch: a group of instances
  */
 
 class Batch {
 private:
-    Tensor data;
-    std::vector<float*> targets;
-    int size;
+    Tensor data; /**< Instances data stored as a tensor whose first dimension is the size of the batch */
+    std::vector<float*> targets; /**< List of target output for each instance represented in a one-hot representation. It's a list of pointers that is not deleted when the batch is deleted */
+    int size; /**< Size of the batch: number of instances in the batch */
 public:
     Batch(Tensor data);
     Batch(int nDimData, std::vector<int> dimSizes, float *data, const std::vector<float *> &targets);

@@ -12,13 +12,14 @@
 #include "Tensor.h"
 
 /**
- * Structure to represent an instance defined as: (inputVector, label)
+ * @class Instance
+ * @brief Data structure representing a data instance defined as: (input, target)
  */
 
 class Instance {
 private:
-    Tensor* data; /**< Input vector (data fed to the neural network) */
-    float* labelOneHot; /**< Label associated to the input vector in a one hot representation. It's shared between instances so it should not be deleted */
+    Tensor* data; /**< Input vector (data fed to the AI model) */
+    float* labelOneHot; /**< Label associated to the input vector in a one hot representation. It's shared between instances so it should not be deleted when an instance is deleted */
 public:
     Instance(Tensor* data, float* labelOneHot);
     Tensor* getData();

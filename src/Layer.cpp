@@ -50,8 +50,3 @@ Tensor* Layer::getActivationDerivatives(const Tensor& input) {
 Tensor* Layer::getActivationValues(const Tensor &input) {
     return activationFunction->getValues(input, input.getDimSize(0));
 }
-
-const std::vector<int> & Layer::getOutputShape() {
-    return outputShape;
-}
-

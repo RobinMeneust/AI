@@ -12,7 +12,7 @@
 
 /**
  * @class Relu
- * @brief Relu function used by an neuron layer. This class defines both the Relu function and its derivatives
+ * @brief Relu function used by a layer of an AI model. This class defines both the Relu function and its derivatives
  */
 
 class Relu : public ActivationFunction {

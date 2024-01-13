@@ -24,7 +24,7 @@
 
 class NeuralNetwork {
 private:
-    int inputSize; /**< Size of the input */
+    int inputSize; /**< Size of the input. This will be a list of dimension sizes in the future */ //TODO Change to a list of dimension sizes so that we can send multi dimensional data without flattening it beforehand
     float learningRate; /**< Learning rate */
     LayersList* layers; /**< List of the layers */
 

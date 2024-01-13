@@ -12,7 +12,7 @@
 
 /**
  * @class LeakyRelu
- * @brief LeakyRelu function used by an neuron layer. This class defines both the LeakyRelu function and its derivatives
+ * @brief LeakyRelu function used by a layer of an AI model. This class defines both the LeakyRelu function and its derivatives
  */
 
 class LeakyRelu : public ActivationFunction {

@@ -13,22 +13,22 @@
 
 /**
  * @class ActivationFunction
- * @brief Interface for functions used by an neuron layer. This class defines both the function and its derivatives
+ * @brief Interface for functions used by a layer of an AI model. This class defines both the function and its derivatives
  */
 
 class ActivationFunction {
 public:
     /**
-     * Let f be the activation function. If input is a vector for example: for all component xi of the input vector, calculate f(xi) and return a vector that contains the result for each xi. Some functions only accept specific tensor dimensions.
+     * Let f be the activation function. If input is a tensor (whose dimension is accepted by the function) then for all component xi of the input tensor, calculate f(xi) and return a tensor, whose size is the same as the input, that contains the result for each xi.
      * @param Tensor Input tensor
      * @return Tensor of the outputs of the function for each component of the input tensor
      */
     virtual Tensor *getValues(const Tensor &input, int batchSize) = 0;
 
     /**
-     * Let f be the activation function. If input is a vector for example: for all component xi of the input vector, calculate the derivative df(xi)/dxi and return a vector that contains the result for each xi. Some functions only accept specific tensor dimensions.
+     * Let f be the activation function. If input is a tensor (whose dimension is accepted by the function) then for all component xi of the input tensor, calculate df(xi)/dxi and return a tensor, whose size is the same as the input, that contains the result for each xi.
      * @param input Input tensor
-     * @return Vector of the derivative of the function for each component of the input vector
+     * @return Tensor of the derivative of the function for each component of the input tensor
      */
     virtual Tensor* getDerivatives(const Tensor &input, int batchSize) = 0;
 };
