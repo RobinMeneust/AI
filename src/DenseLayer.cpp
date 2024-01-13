@@ -95,23 +95,15 @@ Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
     float* weightsData = weights.getData();
     float* inputData = input.getData();
 
-
-
     for(int b=0; b<input.getDimSize(0); b++) {
         int k = 0;
         int p = getNbNeurons() * b;
         for (int i = 0; i < getNbNeurons(); i++) {
-            //TODO: getBias(i) is NaN ?? And weights ??
             outputData[p] = getBias(i);
-            if (std::isnan(outputData[p])) {
-                std::cout << "outputData[p] nan. getBias("<<i<<") = "<< getBias(i) << std::endl;
-                DebugBreak();
-            }
-
             int p2 = b*getNbNeuronsPrevLayer();
             for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
-                float prevOutput = outputData[p]; // TODO: for debug, to be deleted
                 outputData[p] += inputData[p2] * weightsData[k];
+//                std::cout << outputData[p] << " "<< inputData[p2] << " "<< weightsData[k] << std::endl;
                 k++;
                 p2++;
             }
@@ -206,10 +198,10 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
     int k=0;
 
     for(int i=0; i<getNbNeurons(); i++) {
-        int m=0;
         for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
+            int m=j;
             // weightsData[k] = w_i,j
-            int p=i*batchSize;
+            int p=i;
 
             // Mean of the derivatives
             double deltaWeight = 0.02 * weightsData[k]; // weight decay, L2: lambda d(sum w^2)/dw = lambda * 2 * w where lambda = 0.01
@@ -217,8 +209,8 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
             for (int b = 0; b < batchSize; b++) {
                 deltaWeight += currentCostDerivativesData[p] * prevLayerOutputData[m]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
                 deltaBias += currentCostDerivativesData[p]; // delta = dC/da_k * da_k/dz_k
-                p++;
-                m++;
+                p += currentCostDerivatives->getDimSize(1);
+                m += prevLayerOutput->getDimSize(1);
             }
             deltaWeight /= (double) batchSize;
             deltaBias /= (double) batchSize;

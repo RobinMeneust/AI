@@ -19,7 +19,7 @@ Tensor * LeakyRelu::getValues(const Tensor &input, int batchSize) {
     float* inputData = input.getData();
 
     for(int i=0; i<output->size(); i++) {
-        outputData[i] = inputData[i] <= 0 ? 0.01f * inputData[i] : inputData[0];
+        outputData[i] = inputData[i] <= 0 ? 0.01f * inputData[i] : inputData[i];
     }
     return output;
 }

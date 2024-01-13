@@ -16,7 +16,7 @@
 
 class Batch {
 private:
-    Tensor data; /**< List of data instances pointers */
+    Tensor data;
     std::vector<float*> targets;
     int size;
 public:

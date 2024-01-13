@@ -17,6 +17,7 @@
 #include "../include/Softmax.h"
 #include "../include/LeakyRelu.h"
 #include "../include/Instance.h"
+#include <chrono>
 
 using namespace cv;
 
@@ -168,7 +169,6 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10]) 
  * @return List of batches generated
  */
 std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> dataset) {
-    //TODO: This function is too slow and we repeat the transformation several times on data that have already been transformed
 //    auto seed = (unsigned) time(nullptr);
     int seed = 5;
     std::default_random_engine gen(seed);
@@ -232,6 +232,7 @@ int main()
     // TRAIN
     std::cout << "Training..." << std::endl;
     for(int epoch=0; epoch<nbEpochs; epoch++) {
+        auto start = std::chrono::high_resolution_clock::now();
         std::cout << "Generating batches..." << std::endl;
         std::vector<Batch*> batches = generateBatches(batchSize, trainingSet);
 
@@ -245,12 +246,29 @@ int main()
             network->fit(*batch);
         }
         std::string fileName = "log.txt";
-        network->save(fileName);
-        std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(testSet) << std::endl;
+//        network->save(fileName);
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start);
+        std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(testSet) << " took: " << duration.count() << "s" << std::endl;
+
+        // Clear batch data
+        for(int i=0; i<batches.size(); i++) {
+            delete batches[i];
+        }
+        batches.clear();
     }
     std::cout << "training done" << std::endl;
 
     // TODO: delete instances (we have a memory leak here) and create an Instance class instead of enum to simplify the destruction process
+
+    for(int i=0; i<trainingSet.size(); i++) {
+        delete trainingSet[i];
+    }
+    trainingSet.clear();
+
+    for(int i=0; i<testSet.size(); i++) {
+        delete testSet[i];
+    }
+    testSet.clear();
 
     delete network;
 

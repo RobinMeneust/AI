@@ -20,7 +20,7 @@ Tensor * Relu::getValues(const Tensor &input, int batchSize) {
     float* inputData = input.getData();
 
     for(int i=0; i<output->size(); i++) {
-        outputData[i] = inputData[i] <= 0 ? 0 : inputData[0];
+        outputData[i] = inputData[i] <= 0 ? 0 : inputData[i];
     }
     return output;
 }

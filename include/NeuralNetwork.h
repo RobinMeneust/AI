@@ -39,7 +39,7 @@ public:
     Tensor* getCostDerivatives(const Tensor &prediction, const Batch &batch);
     void setLearningRate(float newValue);
 //    void save(std::string fileName);
-    int predict(Tensor input);
+    int predict(const Tensor &input);
     float getAccuracy(const std::vector<Instance*> &testSet);
     void save(std::string fileName);
 };

@@ -55,7 +55,7 @@ void NeuralNetwork::addLayer(int nbNeurons, ActivationFunction *activationFuncti
  */
 float *NeuralNetwork::evaluate(const Tensor &input) {
     // We need the input to be considered as a batch of size 1
-
+    // TODO: Move it to main(), we should only accept one representation: a tensor whose first dim is the batch size
     std::vector<int> dimSizes;
     dimSizes.push_back(1);
     for(int i=0; i<input.getNDim(); i++) {
@@ -98,15 +98,14 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
 
     int p1=0;
     for(int b=0; b<currentCostDerivatives->getDimSize(0); b++) {
-        int p3 = 0;
         for (int i = 0; i < layers->getLayer(layerIndex - 1)->getOutputSize(0); i++) {
             int p2=b*layers->getLayer(layerIndex)->getOutputSize(0);
             nextCostDerivativesData[p1] = 0.0f;
+            int p3 = i;
             for (int k = 0; k < layers->getLayer(layerIndex)->getOutputSize(0); k++) {
-                float prevValueDebug = nextCostDerivativesData[p1]; //TODO:delete this line
                 nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[i]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
                 p2++;
-                p3++;
+                p3+= preActivationDerivatives->getDimSize(1);
             }
             p1++;
         }
@@ -133,19 +132,28 @@ void NeuralNetwork::fit(Batch batch) {
     weightedSums[0] = layers->getLayer(0)->getPreActivationValues(*inputData);
     outputs[0] = layers->getLayer(0)->getActivationValues(*(weightedSums[0]));
 
+
+
     for(int i=1; i<getNbLayers(); i++) {
         weightedSums[i] = layers->getLayer(i)->getPreActivationValues(*(outputs[i-1]));
         outputs[i] = layers->getLayer(i)->getActivationValues(*(weightedSums[i]));
     }
 
+//    std::cout << weightedSums[0]->getData()[2+(weightedSums[0]->size()/batch.getSize())] << std::endl;
+//    std::cout << outputs[0]->getData()[2+(outputs[0]->size()/batch.getSize())] << std::endl;
+//    std::cout << weightedSums[1]->getData()[2+(weightedSums[1]->size()/batch.getSize())] << std::endl;
+//    std::cout << outputs[1]->getData()[2+(outputs[1]->size()/batch.getSize())] << std::endl;
+
+
+
+
     // dC/da_k * da_k/dz_k
     Tensor* currentCostDerivatives = getCostDerivatives(*(outputs[getNbLayers()-1]), batch); // dC/da_k
     float* currentCostDerivativesData = currentCostDerivatives->getData();
 
+
     Tensor* activationDerivatives = layers->getLayer(getNbLayers()-1)->getActivationDerivatives(*weightedSums[getNbLayers()-1]);
     float* activationDerivativesData = activationDerivatives->getData();
-
-
 
 
     float invSize = 1.0f/layers->getLayer(getNbLayers()-1)->getOutputSize(0);
@@ -153,6 +161,8 @@ void NeuralNetwork::fit(Batch batch) {
         currentCostDerivativesData[i] *= invSize * activationDerivativesData[i];
     }
 
+//    std::cout << activationDerivatives->getData()[0] << std::endl;
+//    std::cout << currentCostDerivatives->getData()[0] << std::endl;
 
     delete activationDerivatives;
 
@@ -162,11 +172,13 @@ void NeuralNetwork::fit(Batch batch) {
         // Next cost derivatives computation
         if (l>0) {
             nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l);
+//            std::cout << nextCostDerivatives->getData()[0] << std::endl;
         }
 
         // Adjust the weights and biases of the current layer
         Tensor* prevLayerOutput = l>0 ? outputs[l-1] : inputData;
         layers->getLayer(l)->adjustParams(learningRate, currentCostDerivatives, prevLayerOutput);
+
 
         delete currentCostDerivatives;
         currentCostDerivatives = nextCostDerivatives;
@@ -194,7 +206,7 @@ Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch 
     int k=0;
     for(int b=0; b<batch.getSize(); b++) {
         for(int i=0; i<outputSize; i++) {
-            newData[k] = predictionData[i] - batch.getTarget(b)[i];
+            newData[k] = predictionData[k] - batch.getTarget(b)[i];
             k++;
         }
     }
@@ -222,7 +234,7 @@ void NeuralNetwork::setLearningRate(float newValue) {
  * @param input Input vector
  * @return Label of the input vector: number between 0 and the size of the last layer - 1, depending on which component of the output was the highest
  */
-int NeuralNetwork::predict(Tensor input) {
+int NeuralNetwork::predict(const Tensor &input) {
     float* output = evaluate(input);
     int i_max = 0;
     for(int i=1; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
