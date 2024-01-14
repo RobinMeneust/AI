@@ -90,7 +90,12 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
     int prevLayerOutputSize = layers->getLayer(layerIndex - 1)->getOutputSize();
     int layerOutputSize = layers->getLayer(layerIndex)->getOutputSize();
 
-    Tensor* nextCostDerivatives = new Tensor(2, {batchSize, prevLayerOutputSize});
+    std::vector<int> newDims = {batchSize};
+    for(int i=0; i<layers->getLayer(layerIndex - 1)->getOutputDim(); i++) {
+        newDims.push_back(layers->getLayer(layerIndex - 1)->getOutputSize(i));
+    }
+
+    Tensor* nextCostDerivatives = new Tensor(newDims.size(), newDims);
     float* nextCostDerivativesData = nextCostDerivatives->getData();
 
     Tensor* nextActivationDerivatives = layers->getLayer(layerIndex-1)->getActivationDerivatives(*weightedSumsPrevLayer);
