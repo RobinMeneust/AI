@@ -41,10 +41,10 @@ Mat loadImage(std::string filename) {
  */
 
 NeuralNetwork* initNN() {
-    NeuralNetwork* network = new NeuralNetwork(28*28);
-//    network->addLayer(32, new Sigmoid());
-    network->addLayer(512, new LeakyRelu());
-    network->addLayer(10, new Softmax());
+    NeuralNetwork* network = new NeuralNetwork({28, 28});
+    network->addLayer(LayerType::Flatten, {28*28}, new LeakyRelu());
+    network->addLayer(LayerType::Dense, {512}, new LeakyRelu());
+    network->addLayer(LayerType::Dense, {10}, new Softmax());
     network->setLearningRate(0.03f);
 
     return network;
@@ -138,8 +138,8 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], 
             Mat normalizedImage;
             cv::normalize(image, normalizedImage, 0, 1, cv::NORM_MINMAX);
 
-            float* flattenInput = flatten(normalizedImage, 28, 28); // TODO: Don't flatten it, it will be done by a flatten layer in a future update
-            Instance* instance = new Instance(new Tensor(1, {28*28}, flattenInput), expectedResult[i]);
+            float* flattenInput = flatten(normalizedImage, 28, 28);
+            Instance* instance = new Instance(new Tensor(2, {28,28}, flattenInput), expectedResult[i]);
             delete[] flattenInput;
 
             instances.push_back(instance);

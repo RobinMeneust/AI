@@ -72,7 +72,7 @@ DenseLayer::~DenseLayer()
  * @return Number of neurons in this layer
  */
 int DenseLayer::getNbNeurons() {
-    return getOutputSize(0);
+    return getOutputSize();
 }
 
 /**
@@ -275,4 +275,8 @@ std::string DenseLayer::toString() {
         s.append("\n");
     }
     return s;
+}
+
+LayerType DenseLayer::getType() {
+    return LayerType::Dense;
 }

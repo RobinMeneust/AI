@@ -8,14 +8,14 @@
 #include "../include/neuralNetwork.h"
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 /**
  * Default constructor for the neural network
  * @param inputSize Size of the input tensor
  * @remarks This will be changed so that we can accept a multi-dimensional input
  */
-
-NeuralNetwork::NeuralNetwork(int inputSize) : inputSize(inputSize), learningRate(0.1), layers(new LayersList()) {}
+NeuralNetwork::NeuralNetwork(const std::vector<int> &inputShape) : inputShape(inputShape), learningRate(0.1), layers(new LayersList()) {}
 
 /**
  * Free memory space occupied by the neural network layers
@@ -37,14 +37,15 @@ int NeuralNetwork::getNbLayers() {
  * @param nbNeurons Number of neurons in the added layer
  * @param activationFunction Activation function of the added layer (Softmax, Sigmoid...)
  */
-void NeuralNetwork::addLayer(int nbNeurons, ActivationFunction *activationFunction) {
+void NeuralNetwork::addLayer(LayerType type, const std::vector<int> &outputShape, ActivationFunction *activationFunction) {
     int nbLayers = getNbLayers();
     Layer* prevLayer = layers->getLayer(nbLayers - 1);
+
     if(prevLayer == nullptr) {
         // It's the first layer added
-        layers->add(nbNeurons, inputSize, activationFunction);
+        layers->add(type, inputShape, outputShape, activationFunction);
     } else {
-        layers->add(nbNeurons, prevLayer->getOutputSize(0), activationFunction);
+        layers->add(type, prevLayer->getOutputShape(), outputShape, activationFunction);
     }
 }
 
@@ -86,8 +87,8 @@ Tensor * NeuralNetwork::evaluate(const Tensor &input) {
  */
 Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex) {
     int batchSize = currentCostDerivatives->getDimSize(0);
-    int prevLayerOutputSize = layers->getLayer(layerIndex - 1)->getOutputSize(0);
-    int layerOutputSize = layers->getLayer(layerIndex)->getOutputSize(0);
+    int prevLayerOutputSize = layers->getLayer(layerIndex - 1)->getOutputSize();
+    int layerOutputSize = layers->getLayer(layerIndex)->getOutputSize();
 
     Tensor* nextCostDerivatives = new Tensor(2, {batchSize, prevLayerOutputSize});
     float* nextCostDerivativesData = nextCostDerivatives->getData();
@@ -100,8 +101,6 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
     Tensor* preActivationDerivatives = layers->getLayer(layerIndex)->getPreActivationDerivatives();
     float* preActivationDerivativesData = preActivationDerivatives->getData();
 
-    //TODO: WARNING we don't consider layers of dim > 1 here, so we should be careful when we add Conv2D layers
-
     int p1=0;
 
     for(int b=0; b<batchSize; b++) {
@@ -110,8 +109,9 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
             int p2 = p2Init;
             nextCostDerivativesData[p1] = 0.0f;
             int p3 = i;
-            for (int k = 0; k < layers->getLayer(layerIndex)->getOutputSize(0); k++) {
-                nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[p1]; // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+            for (int k = 0; k < layerOutputSize; k++) {
+                // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+                nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[p1];
                 p2++;
                 p3+= prevLayerOutputSize;
             }
@@ -145,7 +145,6 @@ void NeuralNetwork::fit(Batch batch) {
         weightedSums[i] = layers->getLayer(i)->getPreActivationValues(*(outputs[i-1]));
         outputs[i] = layers->getLayer(i)->getActivationValues(*(weightedSums[i]));
     }
-
     // dC/da_k * da_k/dz_k
     Tensor* currentCostDerivatives = getCostDerivatives(*(outputs[getNbLayers()-1]), batch); // dC/da_k
     float* currentCostDerivativesData = currentCostDerivatives->getData();
@@ -164,7 +163,6 @@ void NeuralNetwork::fit(Batch batch) {
     delete activationDerivatives;
 
     Tensor* nextCostDerivatives = nullptr;
-
     for(int l=getNbLayers()-1; l>=0; l--) {
         // Next cost derivatives computation
         if (l>0) {
@@ -174,7 +172,6 @@ void NeuralNetwork::fit(Batch batch) {
         // Adjust the weights and biases of the current layer
         Tensor* prevLayerOutput = l>0 ? outputs[l-1] : inputData;
         layers->getLayer(l)->adjustParams(learningRate, currentCostDerivatives, prevLayerOutput);
-
 
         delete currentCostDerivatives;
         currentCostDerivatives = nextCostDerivatives;

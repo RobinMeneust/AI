@@ -25,6 +25,11 @@ add_executable(${PROJECT_NAME}
         src/Layer.cpp
         src/Instance.cpp
         include/Batch.h
-        src/Batch.cpp)
+        src/Batch.cpp
+        include/LayerType.h
+        src/FlattenLayer.h
+        src/FlattenLayer.cpp
+        src/FlattenLayer.h
+)
 
 target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} )

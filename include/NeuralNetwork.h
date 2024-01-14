@@ -15,6 +15,7 @@
 #include "LayersList.h"
 #include "../include/Batch.h"
 #include "Instance.h"
+#include "LayerType.h"
 
 /**
  * @class NeuralNetwork
@@ -24,15 +25,15 @@
 
 class NeuralNetwork {
 private:
-    int inputSize; /**< Size of the input. This will be a list of dimension sizes in the future */ //TODO Change to a list of dimension sizes so that we can send multi dimensional data without flattening it beforehand
+    std::vector<int> inputShape;
     float learningRate; /**< Learning rate */
     LayersList* layers; /**< List of the layers */
 
 public:
-    NeuralNetwork(int nbNeuronsInputLayer);
+    NeuralNetwork(const std::vector<int> &inputShape);
     ~NeuralNetwork();
     int getNbLayers();
-    void addLayer(int nbNeurons, ActivationFunction* activationFunction);
+    void addLayer(LayerType type, const std::vector<int> &outputShape, ActivationFunction *activationFunction);
     Tensor * evaluate(const Tensor &input);
     Tensor* getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex);
     void fit(Batch batch);

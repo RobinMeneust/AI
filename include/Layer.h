@@ -10,6 +10,7 @@
 
 #include "../include/ActivationFunction.h"
 #include "Tensor.h"
+#include "LayerType.h"
 
 /**
  * @class Layer
@@ -17,22 +18,34 @@
  */
 
 class Layer {
+private:
+    int calculateTotalSize(const std::vector<int>& shape);
 protected:
     std::vector<int> inputShape; /**< Sizes of the input tensor for each dimension */
     std::vector<int> outputShape; /**< Sizes of the input tensor for each dimension */
     ActivationFunction* activationFunction; /**< Activation function of this layer (use Identity if none) */
+    int inputSize;
+    int outputSize;
+
+    void setInputShape(std::vector<int> newInputShape);
+    void setOutputShape(std::vector<int> newOutputShape);
 
 public:
     Layer(const std::vector<int> &inputShape, const std::vector<int> &outputShape, ActivationFunction* activationFunction);
     Layer(const std::vector<int> &inputShape, const std::vector<int> &outputShape);
     Layer(Layer const& copy);
     ~Layer() = default;
-    int getDimInput();
+    int getInputDim();
     int getOutputDim();
     int getInputSize(int dim);
+    int getInputSize();
     int getOutputSize(int dim);
+    int getOutputSize();
     Tensor* getActivationDerivatives(const Tensor &input);
     Tensor* getActivationValues(const Tensor &input);
+    std::vector<int> getInputShape();
+    std::vector<int> getOutputShape();
+
 
     /**
      * Get the output of the layer given input
@@ -75,5 +88,7 @@ public:
      * @return String representing the layer
      */
     virtual std::string toString() = 0;
+
+    virtual LayerType getType() = 0;
 };
 #endif

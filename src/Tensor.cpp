@@ -7,7 +7,7 @@
 
 #include "../include/Tensor.h"
 #include <iostream>
-
+#include <debugapi.h>
 /**
  * Create a tensor from a shape and allocate memory for the data without initializing its values
  * @param nDim Number of dimensions
@@ -17,6 +17,7 @@ Tensor::Tensor(int nDim, const std::vector<int> &dimSizes) : nDim(nDim), dimSize
     strides = new int[nDim];
 
     if(nDim != dimSizes.size()) {
+        DebugBreak();
         std::cerr << "ERROR: The provided number of dimensions does not match with the size of the dimension sizes array" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -181,6 +182,7 @@ int Tensor::size() const {
  */
 int Tensor::getDimSize(int i) const {
     if(i<0 || i>=getNDim()) {
+        DebugBreak();
         std::cerr << "ERROR: dimension out of bound in getDimSize" << std::endl;
         exit(EXIT_FAILURE);
     }

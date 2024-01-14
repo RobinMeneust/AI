@@ -14,26 +14,27 @@
  * @param outputShape Shape of the output tensor
  * @param activationFunction Activation function applied to calculate the output of this layer
  */
-Layer::Layer(const std::vector<int> &inputShape, const std::vector<int> &outputShape, ActivationFunction* activationFunction) : inputShape(inputShape), outputShape(outputShape), activationFunction(activationFunction) {}
+Layer::Layer(const std::vector<int> &inputShape, const std::vector<int> &outputShape, ActivationFunction* activationFunction) : inputShape(inputShape), outputShape(outputShape), activationFunction(activationFunction), inputSize(calculateTotalSize(inputShape)), outputSize(
+        calculateTotalSize(outputShape)) {}
 
 /**
  * Create a Layer from a shape definition. The activation function is here the identity (this means that the output is not transformed).
  * @param inputShape Shape of the input tensor (list of dimension sizes, e.g.: (5,10) is a 5x10 matrix)
  * @param outputShape Shape of the output tensor
  */
-Layer::Layer(const std::vector<int> &inputShape, const std::vector<int> &outputShape) : inputShape(inputShape), outputShape(outputShape), activationFunction(new Identity()) {}
+Layer::Layer(const std::vector<int> &inputShape, const std::vector<int> &outputShape) : Layer(inputShape, outputShape, new Identity()) {}
 
 /**
  * Create a layer by copying another one
  * @param copy Layer to be copied
  */
-Layer::Layer(const Layer &copy) : inputShape(copy.inputShape), outputShape(copy.outputShape), activationFunction(copy.activationFunction)  {}
+Layer::Layer(const Layer &copy) : Layer(copy.inputShape, copy.outputShape, copy.activationFunction) {}
 
 /**
  * Get the rank of the input tensor without the batch size. e.g.: if we have a batch of 2 tensors of dim 2: [[1],[2]] and [[1],[1]], then this function returns 2 instead of 3 even though we will have the rank-3 tensor input: [[[1],[2]], [[1],[1]]]
  * @return Rank of the input (number of dimensions)
  */
-int Layer::getDimInput() {
+int Layer::getInputDim() {
     return inputShape.size();
 }
 
@@ -85,4 +86,42 @@ Tensor* Layer::getActivationDerivatives(const Tensor& input) {
  */
 Tensor* Layer::getActivationValues(const Tensor &input) {
     return activationFunction->getValues(input, input.getDimSize(0));
+}
+
+void Layer::setInputShape(std::vector<int> newInputShape) {
+    inputShape = newInputShape;
+    inputSize = calculateTotalSize(newInputShape);
+}
+
+void Layer::setOutputShape(std::vector<int> newOutputShape) {
+    outputShape = newOutputShape;
+    inputSize = calculateTotalSize(newOutputShape);
+}
+
+std::vector<int> Layer::getInputShape() {
+    return inputShape;
+}
+
+std::vector<int> Layer::getOutputShape() {
+    return outputShape;
+}
+
+int Layer::getInputSize() {
+    return inputSize;
+}
+
+int Layer::getOutputSize() {
+    return outputSize;
+}
+
+int Layer::calculateTotalSize(const std::vector<int>& shape) {
+    if(shape.empty()) {
+        return 0;
+    }
+
+    int size = 1;
+    for(auto &s: shape) {
+        size *= s;
+    }
+    return size;
 }

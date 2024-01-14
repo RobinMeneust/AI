@@ -11,6 +11,7 @@
 #include <vector>
 #include "ActivationFunction.h"
 #include "Layer.h"
+#include "LayerType.h"
 
 /**
  * @class LayersList
@@ -23,7 +24,7 @@ private:
 public:
     LayersList() = default;
     ~LayersList() = default;
-    void add(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction);
+    void add(LayerType type, const std::vector<int> &inputShape, const std::vector<int> &outputShape, ActivationFunction* activationFunction);
     Layer* getLayer(int i);
     int getNbLayers();
 };
