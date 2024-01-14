@@ -288,16 +288,13 @@ std::string DenseLayer::toString() {
     return s;
 }
 
-LayerType DenseLayer::getType() {
-    return LayerType::Dense;
-}
-
-bool DenseLayer::isLayerShapeValid() {
-    return getInputSize()!=0 && getOutputSize()!=0 && getInputDim()==1 && getOutputDim()==1;
-}
-
 void DenseLayer::changeInputShape(const std::vector<int> &newInputShape) {
     changeShapes(newInputShape, {});
+    if(getInputSize()==0 || getOutputSize()==0 || getInputDim()!=1 || getOutputDim()!=1) {
+        std::cerr << "ERROR: Invalid layer parameters" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
     delete weights;
     weights = new Tensor(2, {getNbNeurons(), getNbNeuronsPrevLayer()});
     initParams();

@@ -47,13 +47,6 @@ std::string FlattenLayer::toString() {
     return s;
 }
 
-LayerType FlattenLayer::getType() {
-    return LayerType::Flatten;
-}
-
-bool FlattenLayer::isLayerShapeValid() {
-    return getInputSize()!=0 && getInputSize() == getOutputSize() && getOutputDim()==1;
-}
 
 void FlattenLayer::changeInputShape(const std::vector<int> &newInputShape) {
     int size = 1;
@@ -62,4 +55,9 @@ void FlattenLayer::changeInputShape(const std::vector<int> &newInputShape) {
     }
 
     changeShapes(newInputShape, {size});
+
+    if(getInputSize()==0 || getInputSize() != getOutputSize() || getOutputDim() != 1) {
+        std::cerr << "ERROR: Invalid layer parameters" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }

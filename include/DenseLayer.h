@@ -41,8 +41,6 @@ public:
     Tensor* getPreActivationDerivatives();
     Tensor* getPreActivationValues(const Tensor &tensor);
     std::string toString();
-    LayerType getType();
-    bool isLayerShapeValid();
     void changeInputShape(const std::vector<int> &newInputShape);
 };
 #endif

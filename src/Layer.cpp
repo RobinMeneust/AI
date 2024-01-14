@@ -132,9 +132,4 @@ void Layer::changeShapes(const std::vector<int> &newInputShape, const std::vecto
         setInputShape(newInputShape);
     if(!newOutputShape.empty())
         setOutputShape(newOutputShape);
-
-    if(!isLayerShapeValid()) {
-        std::cerr << "ERROR: Invalid layer parameters (input shape,...)" << std::endl;
-        exit(EXIT_FAILURE);
-    }
 }

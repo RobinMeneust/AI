@@ -91,10 +91,6 @@ public:
      */
     virtual std::string toString() = 0;
 
-    virtual LayerType getType() = 0;
-
-    virtual bool isLayerShapeValid() = 0;
-
     virtual void changeInputShape(const std::vector<int> &newInputShape) = 0;
 };
 #endif

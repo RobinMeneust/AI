@@ -16,6 +16,8 @@
 #include "../include/Softmax.h"
 #include "../include/LeakyRelu.h"
 #include "../include/FlattenLayer.h"
+#include "../include/MaxPoolingLayer.h"
+#include "../include/Conv2DLayer.h"
 #include <chrono>
 
 using namespace cv;
@@ -43,16 +45,13 @@ Mat loadImage(std::string filename) {
 
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork({28, 28});
-//    network->addLayer(LayerType::Conv2D, {20 28 28}, new LeakyRelu());
-//    network->addLayer(LayerType::MaxPooling, {20 14 14}, new LeakyRelu())
-//    network->addLayer(LayerType::Conv2D, {20 14 14}, new LeakyRelu());
-//    network->addLayer(LayerType::MaxPooling, {16 7 7}, new LeakyRelu());
-    network->addLayer(new FlattenLayer());
-//    network->addLayer(new DenseLayer(128, new LeakyRelu()));
-//    network->addLayer(LayerType::Dense, {64}, new LeakyRelu());
-
-    network->addLayer(new DenseLayer(512, new LeakyRelu()));
-    network->addLayer(new DenseLayer(10, new Softmax));
+//    network->addLayer(new Conv2DLayer(10, {3, 3}, 1, 2 , new LeakyRelu())); // 10 kernels of size 3x3 (output shape = (10x28x28)), stride 1, padding 2
+//    network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (10x14x14)), stride 2, padding 0
+//    network->addLayer(new Conv2DLayer(10, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels 3x3 (output shape = (100x14x14)), stride 1, padding 2
+//    network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (100x7x7)), stride 2, padding 0
+    network->addLayer(new FlattenLayer()); // (output shape = (100*7*7))
+    network->addLayer(new DenseLayer(128, new LeakyRelu()));
+    network->addLayer(new DenseLayer(64, new LeakyRelu()));
     network->setLearningRate(0.03f);
 
     return network;
