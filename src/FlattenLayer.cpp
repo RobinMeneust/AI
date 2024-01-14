@@ -9,6 +9,8 @@ FlattenLayer::FlattenLayer(const std::vector<int> &inputShape) : Layer(inputShap
     setOutputShape({getInputSize()});
 }
 
+FlattenLayer::FlattenLayer() : Layer({}, {}, new Identity()) {}
+
 Tensor* FlattenLayer::getPreActivationValues(const Tensor &input) {
     return new Tensor(2, {input.getDimSize(0),outputShape[0]}, input.getData());
 }
@@ -47,4 +49,17 @@ std::string FlattenLayer::toString() {
 
 LayerType FlattenLayer::getType() {
     return LayerType::Flatten;
+}
+
+bool FlattenLayer::isLayerShapeValid() {
+    return getInputSize()!=0 && getInputSize() == getOutputSize() && getOutputDim()==1;
+}
+
+void FlattenLayer::changeInputShape(const std::vector<int> &newInputShape) {
+    int size = 1;
+    for(auto &s: newInputShape) {
+        size *= s;
+    }
+
+    changeShapes(newInputShape, {size});
 }

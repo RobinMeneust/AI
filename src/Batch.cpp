@@ -14,7 +14,7 @@
  * @param data Flattened Tensor containing all the data of the batch. The first dimension size of the original tensor is equal to the batch size. This can be deleted after calling this constructor, since the values are copied.
  * @param targets List of target output for each instance represented in a one-hot representation. Don't delete the content of the list after creating a batch since we just keep the address of the target data and not the values.
  */
-Batch::Batch(int nDimData, std::vector<int> dimSizes, float *data, const std::vector<float *> &targets) : size(dimSizes[0]), data(Tensor(nDimData, dimSizes, data)), targets(targets) {}
+Batch::Batch(int nDimData, std::vector<int> dimSizes, float *data, const std::vector<float *> &targets) : size(dimSizes[0]), data(new Tensor(nDimData, dimSizes, data)), targets(targets) {}
 
 /**
  * Get the size of the batch (number of instances)
@@ -29,7 +29,7 @@ int Batch::getSize() const {
  * @return A tensor containing the data of the batch
  */
 Tensor* Batch::getData() {
-    return &data;
+    return data;
 }
 
 /**

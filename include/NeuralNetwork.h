@@ -33,7 +33,7 @@ public:
     NeuralNetwork(const std::vector<int> &inputShape);
     ~NeuralNetwork();
     int getNbLayers();
-    void addLayer(LayerType type, const std::vector<int> &outputShape, ActivationFunction *activationFunction);
+    void addLayer(Layer* newLayer);
     Tensor * evaluate(const Tensor &input);
     Tensor* getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex);
     void fit(Batch batch);

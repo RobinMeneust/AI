@@ -24,7 +24,7 @@ private:
 public:
     LayersList() = default;
     ~LayersList() = default;
-    void add(LayerType type, const std::vector<int> &inputShape, const std::vector<int> &outputShape, ActivationFunction* activationFunction);
+    void add(Layer* newLayer, const std::vector<int> &inputShape);
     Layer* getLayer(int i);
     int getNbLayers();
 };

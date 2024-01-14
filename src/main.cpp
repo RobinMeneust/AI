@@ -15,6 +15,7 @@
 #include <random>
 #include "../include/Softmax.h"
 #include "../include/LeakyRelu.h"
+#include "../include/FlattenLayer.h"
 #include <chrono>
 
 using namespace cv;
@@ -42,9 +43,16 @@ Mat loadImage(std::string filename) {
 
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork({28, 28});
-    network->addLayer(LayerType::Flatten, {28*28}, new LeakyRelu());
-    network->addLayer(LayerType::Dense, {512}, new LeakyRelu());
-    network->addLayer(LayerType::Dense, {10}, new Softmax());
+//    network->addLayer(LayerType::Conv2D, {20 28 28}, new LeakyRelu());
+//    network->addLayer(LayerType::MaxPooling, {20 14 14}, new LeakyRelu())
+//    network->addLayer(LayerType::Conv2D, {20 14 14}, new LeakyRelu());
+//    network->addLayer(LayerType::MaxPooling, {16 7 7}, new LeakyRelu());
+    network->addLayer(new FlattenLayer());
+//    network->addLayer(new DenseLayer(128, new LeakyRelu()));
+//    network->addLayer(LayerType::Dense, {64}, new LeakyRelu());
+
+    network->addLayer(new DenseLayer(512, new LeakyRelu()));
+    network->addLayer(new DenseLayer(10, new Softmax));
     network->setLearningRate(0.03f);
 
     return network;

@@ -18,36 +18,18 @@
  * @param nbNeuronsPrevLayer Number of neurons of the previous layer (input size)
  * @param activationFunction Activation function used (Softmax, Sigmoid...)
  */
-DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction *activationFunction) : Layer({nbNeuronsPrevLayer},{nbNeurons}, activationFunction), weights(Tensor(2, {nbNeurons, nbNeuronsPrevLayer})), biases(nullptr) {
-	// Allocate memory and initialize neuron layer with random values for bias and weight
-    // Use Uniform Xavier Initialization
-
-    float upperBound = (float) sqrt(6.0/(double)(nbNeuronsPrevLayer+nbNeurons));
-    float lowerBound = -upperBound;
-
-    // random generator
-    int seed = 5;
-    std::default_random_engine gen(seed);
-    std::uniform_real_distribution<float> distribution(lowerBound,upperBound);
-
-	biases = new float[nbNeurons];
-	for(int i=0; i<nbNeurons; i++){
-		biases[i] = distribution(gen);
-	}
-
-    for(int i=0; i<nbNeurons; i++){
-        for(int j=0; j<nbNeuronsPrevLayer; j++) {
-            weights.set({i,j}, distribution(gen));
-        }
-    }
+DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction *activationFunction) : Layer({nbNeuronsPrevLayer},{nbNeurons}, activationFunction), weights(new Tensor(2, {nbNeurons, nbNeuronsPrevLayer})), biases(nullptr) {
+    initParams();
 }
+
+DenseLayer::DenseLayer(int nbNeurons, ActivationFunction *activationFunction) : Layer({},{nbNeurons}, activationFunction), weights(new Tensor(0,{})), biases(nullptr) {}
 
 /**
  * Copy a dense neuron layer
  * @param copy Copied neuron layer
  */
 DenseLayer::DenseLayer(DenseLayer const& copy) : Layer({copy.inputShape[0]},{copy.outputShape[0]}, copy.activationFunction), weights(copy.weights), biases(nullptr) {
-    if(copy.biases == nullptr || copy.weights.getNDim() != 2 || copy.activationFunction == nullptr) {
+    if(copy.biases == nullptr || copy.weights->getNDim() != 2 || copy.activationFunction == nullptr) {
         return;
     }
 
@@ -65,6 +47,35 @@ DenseLayer::DenseLayer(DenseLayer const& copy) : Layer({copy.inputShape[0]},{cop
 DenseLayer::~DenseLayer()
 {
 	delete [] biases;
+}
+
+void DenseLayer::initParams() {
+    // Allocate memory and initialize neuron layer with random values for bias and weight
+    // Use Uniform Xavier Initialization
+
+    delete [] biases;
+
+    int nbNeuronsPrevLayer = getNbNeuronsPrevLayer();
+    int nbNeurons = getNbNeurons();
+
+    float upperBound = (float) sqrt(6.0/(double)(nbNeuronsPrevLayer+nbNeurons));
+    float lowerBound = -upperBound;
+
+    // random generator
+    int seed = 5;
+    std::default_random_engine gen(seed);
+    std::uniform_real_distribution<float> distribution(lowerBound,upperBound);
+
+    biases = new float[nbNeurons];
+    for(int i=0; i<nbNeurons; i++){
+        biases[i] = distribution(gen);
+    }
+
+    for(int i=0; i<nbNeurons; i++){
+        for(int j=0; j<nbNeuronsPrevLayer; j++) {
+            weights->set({i,j}, distribution(gen));
+        }
+    }
 }
 
 /**
@@ -92,7 +103,7 @@ Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
     Tensor* output = new Tensor(2, {input.getDimSize(0),getNbNeurons()});
 
     float* outputData = output->getData();
-    float* weightsData = weights.getData();
+    float* weightsData = weights->getData();
     float* inputData = input.getData();
 
     int nbNeuronsPrevLayer = getNbNeuronsPrevLayer();
@@ -140,7 +151,7 @@ Tensor* DenseLayer::getOutput(const Tensor &input) {
  */
 float DenseLayer::getWeight(int neuron, int prevNeuron) {
     if(neuron >= 0 && neuron < getNbNeurons() && prevNeuron >= 0 && prevNeuron < getNbNeuronsPrevLayer()) {
-        return weights.get({neuron,prevNeuron});
+        return weights->get({neuron,prevNeuron});
     }
     std::cerr << "getWeight(): Invalid neuron index and previous neuron index for weight" << std::endl;
     exit(EXIT_FAILURE);
@@ -154,7 +165,7 @@ float DenseLayer::getWeight(int neuron, int prevNeuron) {
  */
 void DenseLayer::setWeight(int neuron, int prevNeuron, float newValue) {
     if(neuron >= 0 && neuron < getNbNeurons() && prevNeuron >= 0 && prevNeuron < getNbNeuronsPrevLayer()) {
-        weights.set({neuron,prevNeuron}, newValue);
+        weights->set({neuron,prevNeuron}, newValue);
         return;
     }
     exit(EXIT_FAILURE);
@@ -195,7 +206,7 @@ void DenseLayer::setBias(int neuron, float newValue) {
  * @param prevLayerOutput Tensor containing the output of the previous layer (it's the input of this layer)
  */
 void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput) {
-    float* weightsData = weights.getData();
+    float* weightsData = weights->getData();
     float* currentCostDerivativesData = currentCostDerivatives->getData();
     float* prevLayerOutputData = prevLayerOutput->getData();
 
@@ -251,7 +262,7 @@ Tensor* DenseLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int
  * @return Tensor of rank 2 containing all the weights weight w_i,j
  */
 Tensor *DenseLayer::getPreActivationDerivatives() {
-    return &weights;
+    return weights;
 }
 
 /**
@@ -279,4 +290,15 @@ std::string DenseLayer::toString() {
 
 LayerType DenseLayer::getType() {
     return LayerType::Dense;
+}
+
+bool DenseLayer::isLayerShapeValid() {
+    return getInputSize()!=0 && getOutputSize()!=0 && getInputDim()==1 && getOutputDim()==1;
+}
+
+void DenseLayer::changeInputShape(const std::vector<int> &newInputShape) {
+    changeShapes(newInputShape, {});
+    delete weights;
+    weights = new Tensor(2, {getNbNeurons(), getNbNeuronsPrevLayer()});
+    initParams();
 }

@@ -18,14 +18,16 @@
 
 class DenseLayer : public Layer {
 private:
-    Tensor weights; /**< Tensor of rank (dimension) 2 that contains all the weight of this layer. The first dimension size is the same as this layer number of neurons which is the first output dimension size. The second one is the same as the previous number of neurons */
+    Tensor* weights; /**< Tensor of rank (dimension) 2 that contains all the weight of this layer. The first dimension size is the same as this layer number of neurons which is the first output dimension size. The second one is the same as the previous number of neurons */
     float* biases; /**< List of all the biases of this layer. We might want to change the type from float* to Tensor in the future */
 
 public:
     DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction* activationFunction);
+    DenseLayer(int nbNeurons, ActivationFunction* activationFunction);
     DenseLayer(DenseLayer const& copy);
     ~DenseLayer();
 
+    void initParams();
     float getWeight(int neuron, int prevNeuron);
     void setWeight(int neuron, int prevNeuron, float newValue);
     float getBias(int neuron);
@@ -40,5 +42,7 @@ public:
     Tensor* getPreActivationValues(const Tensor &tensor);
     std::string toString();
     LayerType getType();
+    bool isLayerShapeValid();
+    void changeInputShape(const std::vector<int> &newInputShape);
 };
 #endif

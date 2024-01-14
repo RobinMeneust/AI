@@ -34,19 +34,13 @@ int NeuralNetwork::getNbLayers() {
 
 /**
  * Add a layer to the network
- * @param nbNeurons Number of neurons in the added layer
- * @param activationFunction Activation function of the added layer (Softmax, Sigmoid...)
+ * @param newLayer Layer being added
  */
-void NeuralNetwork::addLayer(LayerType type, const std::vector<int> &outputShape, ActivationFunction *activationFunction) {
+void NeuralNetwork::addLayer(Layer* newLayer) {
     int nbLayers = getNbLayers();
     Layer* prevLayer = layers->getLayer(nbLayers - 1);
 
-    if(prevLayer == nullptr) {
-        // It's the first layer added
-        layers->add(type, inputShape, outputShape, activationFunction);
-    } else {
-        layers->add(type, prevLayer->getOutputShape(), outputShape, activationFunction);
-    }
+    layers->add(newLayer, prevLayer == nullptr ? inputShape : prevLayer->getOutputShape());
 }
 
 /**

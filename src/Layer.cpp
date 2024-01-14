@@ -5,6 +5,7 @@
  * @date 2022-12-14
  */
 
+#include <iostream>
 #include "../include/Layer.h"
 #include "../include/Identity.h"
 
@@ -95,7 +96,7 @@ void Layer::setInputShape(std::vector<int> newInputShape) {
 
 void Layer::setOutputShape(std::vector<int> newOutputShape) {
     outputShape = newOutputShape;
-    inputSize = calculateTotalSize(newOutputShape);
+    outputSize = calculateTotalSize(newOutputShape);
 }
 
 std::vector<int> Layer::getInputShape() {
@@ -124,4 +125,16 @@ int Layer::calculateTotalSize(const std::vector<int>& shape) {
         size *= s;
     }
     return size;
+}
+
+void Layer::changeShapes(const std::vector<int> &newInputShape, const std::vector<int> &newOutputShape) {
+    if(!newInputShape.empty())
+        setInputShape(newInputShape);
+    if(!newOutputShape.empty())
+        setOutputShape(newOutputShape);
+
+    if(!isLayerShapeValid()) {
+        std::cerr << "ERROR: Invalid layer parameters (input shape,...)" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }

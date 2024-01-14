@@ -18,6 +18,7 @@
  */
 
 class Layer {
+    friend class LayersList;
 private:
     int calculateTotalSize(const std::vector<int>& shape);
 protected:
@@ -29,6 +30,7 @@ protected:
 
     void setInputShape(std::vector<int> newInputShape);
     void setOutputShape(std::vector<int> newOutputShape);
+    void changeShapes(const std::vector<int> &newInputShape, const std::vector<int> &newOutputShape);
 
 public:
     Layer(const std::vector<int> &inputShape, const std::vector<int> &outputShape, ActivationFunction* activationFunction);
@@ -90,5 +92,9 @@ public:
     virtual std::string toString() = 0;
 
     virtual LayerType getType() = 0;
+
+    virtual bool isLayerShapeValid() = 0;
+
+    virtual void changeInputShape(const std::vector<int> &newInputShape) = 0;
 };
 #endif

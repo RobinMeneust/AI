@@ -27,9 +27,11 @@ add_executable(${PROJECT_NAME}
         include/Batch.h
         src/Batch.cpp
         include/LayerType.h
-        src/FlattenLayer.h
         src/FlattenLayer.cpp
-        src/FlattenLayer.h
+        src/Conv2DLayer.cpp
+        include/Conv2DLayer.h
+        src/MaxPoolingLayer.cpp
+        include/MaxPoolingLayer.h
 )
 
 target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} )

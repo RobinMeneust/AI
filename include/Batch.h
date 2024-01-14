@@ -17,7 +17,7 @@
 
 class Batch {
 private:
-    Tensor data; /**< Instances data stored as a tensor whose first dimension is the size of the batch */
+    Tensor* data; /**< Instances data stored as a tensor whose first dimension is the size of the batch */
     std::vector<float*> targets; /**< List of target output for each instance represented in a one-hot representation. It's a list of pointers that is not deleted when the batch is deleted */
     int size; /**< Size of the batch: number of instances in the batch */
 public:

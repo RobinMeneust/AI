@@ -14,6 +14,8 @@
 enum class LayerType {
     Dense, /*!< Dense layer  */
     Flatten, /*!< Flatten layer */
+    Conv2D,
+    MaxPooling,
 };
 
 #endif
