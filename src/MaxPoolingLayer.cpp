@@ -56,9 +56,6 @@ Tensor *MaxPoolingLayer::getPreActivationDerivatives() {
 }
 
 Tensor *MaxPoolingLayer::getPreActivationValues(const Tensor &input) {
-    //TODO ADD PADDING
-
-
     if(input.getNDim() != getInputDim()+1) {
         std::cerr << "ERROR: Invalid input (check the dimensions)" << std::endl;
         exit(EXIT_FAILURE);
@@ -68,12 +65,12 @@ Tensor *MaxPoolingLayer::getPreActivationValues(const Tensor &input) {
         outputShapeWithBatch.push_back(outputShape[i]);
     }
 
-    Tensor* output = new Tensor(1+getOutputDim(), outputShapeWithBatch, input.getData());
+    Tensor* output = new Tensor(outputShapeWithBatch);
     float* outputData = output->getData();
 
     Tensor* inputWithPadding;
     if(padding != 0) {
-        inputWithPadding = addPaddingToBatchData(input);
+        inputWithPadding = addPaddingToBatchData(input, padding);
     } else {
         inputWithPadding = (Tensor *) & input;
     }
@@ -82,7 +79,7 @@ Tensor *MaxPoolingLayer::getPreActivationValues(const Tensor &input) {
 
     int nb2DInputs = 1;
     if(getInputDim() == 4) {
-        nb2DInputs = getInputSize(0);
+        nb2DInputs = getInputSize(1);
     }
 
     int inputWidth = input.getNDim() == 3 ? inputWithPadding->getDimSize(1) : inputWithPadding->getDimSize(0);
@@ -136,7 +133,7 @@ std::string MaxPoolingLayer::toString() {
     return "Max-pooling layer";
 }
 
-Tensor *MaxPoolingLayer::addPaddingToBatchData(const Tensor &input) {
+Tensor *MaxPoolingLayer::addPaddingToBatchData(const Tensor &input, int paddingValue) {
     std::vector<int> newDimSizes = {input.getDimSize(0)};
 
     // input dims : batch size, nb 2D inputs (optional), height, width
@@ -150,10 +147,10 @@ Tensor *MaxPoolingLayer::addPaddingToBatchData(const Tensor &input) {
     }
 
     for(; i<input.getNDim(); i++) {
-        newDimSizes.push_back(input.getDimSize(i)+padding);
+        newDimSizes.push_back(input.getDimSize(i)+paddingValue);
     }
 
-    Tensor* output = new Tensor(input.getNDim(), newDimSizes);
+    Tensor* output = new Tensor(newDimSizes);
     float* outputData = output->getData();
     float* inputData = input.getData();
 
@@ -163,10 +160,10 @@ Tensor *MaxPoolingLayer::addPaddingToBatchData(const Tensor &input) {
     int pInput = 0;
     int pOutput = 0;
 
-    int paddingTopLeft = padding/2;
-    int paddingBottomRight = padding - paddingTopLeft;
+    int paddingTopLeft = paddingValue/2;
+    int paddingBottomRight = paddingValue - paddingTopLeft;
 
-    int inputWidthWithPadding = inputWidth + padding;
+    int inputWidthWithPadding = inputWidth + paddingValue;
 
     for(int n=0; n<nb2DInputs*newDimSizes[0]; n++) {
         // For each 2D inputs add padding

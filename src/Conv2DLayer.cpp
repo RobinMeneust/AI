@@ -6,6 +6,7 @@
 #include <cmath>
 #include <random>
 #include "../include/Conv2DLayer.h"
+#include "../include/MaxPoolingLayer.h"
 
 Conv2DLayer::Conv2DLayer(int nbKernels, const std::vector<int>& kernelDimSizes, int stride, int padding, ActivationFunction *activationFunction) : Layer({}, {}, activationFunction), nbKernels(nbKernels), kernelDimSizes(kernelDimSizes), stride(stride), padding(padding) {
     if(nbKernels<=0 || padding<0 || stride<=0 || kernelDimSizes.size() != 2 || kernelDimSizes[0] <= 0 || kernelDimSizes[1] <= 0) {
@@ -47,7 +48,7 @@ void Conv2DLayer::changeInputShape(const std::vector<int> &newInputShape) {
 
     // Create kernels
     for(int i=0; i<newOutputShape[0]; i++) {
-        kernels[i] = createKernel();
+        kernels.push_back(createKernel());
     }
 }
 
@@ -59,7 +60,7 @@ Conv2DLayer::~Conv2DLayer() {
 }
 
 Tensor * Conv2DLayer::createKernel() {
-    Tensor* newKernel = new Tensor(2, kernelDimSizes);
+    Tensor* newKernel = new Tensor(kernelDimSizes);
     float* kernelData = newKernel->getData();
 
     // Uniform Xavier Initialization
@@ -71,7 +72,7 @@ Tensor * Conv2DLayer::createKernel() {
     std::default_random_engine gen(seed);
     std::uniform_real_distribution<float> distribution(lowerBound,upperBound);
 
-    for(int i=0; i<newKernel->size(); i++) {
+    for(int i=0; i<newKernel->getSize(); i++) {
         kernelData[i] = distribution(gen);
     }
 
@@ -79,11 +80,14 @@ Tensor * Conv2DLayer::createKernel() {
 }
 
 Tensor *Conv2DLayer::getOutput(const Tensor &input) {
-    return nullptr;//TODO
+    Tensor* preActivationValues = getPreActivationValues(input);
+    Tensor* output = getActivationValues(*preActivationValues);
+    delete preActivationValues;
+    return output;
 }
 
 void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivatives, Tensor *prevLayerOutput) {
-//TODO
+    //TODO
 }
 
 Tensor *Conv2DLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) {
@@ -95,7 +99,79 @@ Tensor *Conv2DLayer::getPreActivationDerivatives() {
 }
 
 Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
-    return nullptr; //TODO
+    if(input.getNDim() != getInputDim()+1) {
+        std::cerr << "ERROR: Invalid input (check the dimensions)" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    std::vector<int> outputShapeWithBatch = {input.getDimSize(0)};
+    for(int i=0; i<outputShape.size(); i++) {
+        outputShapeWithBatch.push_back(outputShape[i]);
+    }
+
+    Tensor* output = new Tensor(outputShapeWithBatch);
+    float* outputData = output->getData();
+
+    Tensor* inputWithPadding;
+    if(padding != 0) {
+        inputWithPadding = MaxPoolingLayer::addPaddingToBatchData(input, padding); //TODO This function should be moved in a separate file
+    } else {
+        inputWithPadding = (Tensor *) & input;
+    }
+
+    float* inputData = inputWithPadding->getData();
+
+    int nb2DInputs = 1;
+    if(getInputDim() == 4) {
+        nb2DInputs = getInputSize(1);
+    }
+
+    int inputWidth = input.getNDim() == 3 ? inputWithPadding->getDimSize(1) : inputWithPadding->getDimSize(0);
+    int inputHeight = input.getNDim() == 3 ? inputWithPadding->getDimSize(2) : inputWithPadding->getDimSize(1);
+
+    int xUpperBound = inputWidth-kernelDimSizes[0];
+    xUpperBound = (xUpperBound/stride) * stride;
+    int yUpperBound = inputHeight-kernelDimSizes[1];
+    yUpperBound = (yUpperBound/stride) * stride;
+
+    int remainderInput = inputWidth - xUpperBound - stride + (stride-1)*inputWidth;
+
+
+    int p = 0;
+
+    for(int b=0; b<outputShapeWithBatch[0]; b++) {
+        for (int k = 0; k < nbKernels; k++) {
+            float* kernelData = kernels[k]->getData();
+            int pInput = b*nb2DInputs;
+            for (int n = 0; n < nb2DInputs; n++) {
+                // For each 2D inputs compute Max-pooling
+                for (int y = 0; y <= yUpperBound; y += stride) {
+                    for (int x = 0; x <= xUpperBound; x += stride) {
+                        // Apply the kernel to the following elements
+                        outputData[p] = 0;
+
+                        int k3 = 0;
+                        for (int k1 = 0; k1 < kernelDimSizes[1]; k1++) {
+                            int p2 = pInput + k1 * inputWidth;
+                            for (int k2 = 0; k2 < kernelDimSizes[0]; k2++) {
+                                outputData[p] += inputData[p2] * kernelData[k3];
+                                k3++;
+                                p2++;
+                            }
+                        }
+                        p++;
+                        pInput += stride;
+                    }
+                    pInput += remainderInput;
+                }
+            }
+        }
+    }
+
+    if(padding != 0) {
+        delete inputWithPadding;
+    }
+
+    return output;
 }
 
 std::string Conv2DLayer::toString() {

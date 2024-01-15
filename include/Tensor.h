@@ -22,10 +22,11 @@ private:
     std::vector<int> dimSizes; /**< Size of each dimension */
     int* strides; /**< Strides for each dimension (used to get and set data with coordinates) */
     float* data; /**< Data (in a flattened representation) */
+    int size;
 
 public:
-    Tensor(int nDim, const std::vector<int> &dimSizes);
-    Tensor(int nDim, const std::vector<int> &dimSizes, const float *data);
+    Tensor(const std::vector<int> &dimSizes);
+    Tensor(const std::vector<int> &dimSizes, const float *data);
     Tensor(Tensor const& copy);
     ~Tensor();
     float get(const std::vector<int>& coord) const;
@@ -34,7 +35,7 @@ public:
     float * getData() const;
     std::vector<int> getDimSizes() const;
     std::string toString();
-    int size() const;
+    int getSize() const;
     int getDimSize(int i) const;
     float* getStart(const std::vector<int> &coordStart) const;
     int getIndex(const std::vector<int> &coord) const;

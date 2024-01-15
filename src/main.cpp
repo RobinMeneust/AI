@@ -150,7 +150,7 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], 
             cv::normalize(image, normalizedImage, 0, 1, cv::NORM_MINMAX);
 
             float* flattenInput = flatten(normalizedImage, 28, 28);
-            Instance* instance = new Instance(new Tensor(2, {28,28}, flattenInput), expectedResult[i]);
+            Instance* instance = new Instance(new Tensor({28,28}, flattenInput), expectedResult[i]);
             delete[] flattenInput;
 
             instances.push_back(instance);
@@ -186,7 +186,7 @@ std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> datase
     std::vector<Batch*> batches;
     std::shuffle(std::begin(dataset), std::end(dataset), gen);
 
-    int instanceSize = dataset[0]->getData()->size();
+    int instanceSize = dataset[0]->getData()->getSize();
 
     std::vector<int> dimSizeBatch = {batchSize};
     for(int i=0; i<dataset[0]->getData()->getNDim(); i++) {
@@ -233,30 +233,6 @@ int main()
         }
     }
 
-//    MaxPoolingLayer* testLayer = new MaxPoolingLayer({2, 2}, 2, 0);
-//    testLayer->changeInputShape({28,28});
-//    std::vector<Instance*> testInstancesTemp = getDataset(false, expectedResult, 1);
-//    Tensor* data = new Tensor(3, {1, 28, 28}, testInstancesTemp[0]->getData()->getData());
-//
-//    for(int i=0; i<28; i++) {
-//        for(int j=0; j<28; j++) {
-//            std::cout << data->get({0,i,j}) << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//    std::cout << std::endl;
-//
-//    Tensor* result = testLayer->getPreActivationValues(*data);
-//
-//    for(int i=0; i<result->getDimSize(1); i++) {
-//        for(int j=0; j<result->getDimSize(2); j++) {
-//            std::cout << result->get({0,i,j}) << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//    std::cout << std::endl;
-
-
     NeuralNetwork* network = initNN();
     std::cout << "ANN created" << std::endl;
 
@@ -301,7 +277,6 @@ int main()
     }
     std::cout << "training done" << std::endl;
 
-    // TODO: delete instances (we have a memory leak here) and create an Instance class instead of enum to simplify the destruction process
 
     for(int i=0; i<trainingSet.size(); i++) {
         delete trainingSet[i];
@@ -314,12 +289,13 @@ int main()
     testSet.clear();
 
     delete network;
+    delete testBatch;
 
 	return 0;
 }
 
 Batch *instancesListToBatch(std::vector<Instance *> instancesList) {
-    int instanceSize = instancesList[0]->getData()->size();
+    int instanceSize = instancesList[0]->getData()->getSize();
 
     int batchSize = (int)instancesList.size();
 

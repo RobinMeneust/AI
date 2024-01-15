@@ -37,7 +37,7 @@ Tensor * Softmax::getValues(const Tensor &input, int batchSize) {
     // Used to avoid overflow. The output doesn't change because e^(a*x) / (sum e^(a*x)) = (e^a * e^x) / (e^a * sum e^x) = e^x / (sum e^x)
     // We take 40 because exp(40) < 10^18 < 10^38 = float max value. So, if we have less than 10^20 neurons for the layer then we won't get an overflow
     // Here the exponent is between -40 and 40 since the "max" is the absolute maximum (max(abs(min),abs(max)))
-    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
+    Tensor* output = new Tensor(input.getDimSizes());
     float* outputData = output->getData();
 
     std::vector<int> coordStart;
@@ -46,7 +46,7 @@ Tensor * Softmax::getValues(const Tensor &input, int batchSize) {
         coordStart.push_back(0);
     }
 
-    int instanceSize = input.size() / batchSize;
+    int instanceSize = input.getSize() / batchSize;
     float* expTemp = new float[instanceSize];
     int k=0;
 
@@ -83,7 +83,7 @@ Tensor* Softmax::getDerivatives(const Tensor &input, int batchSize) {
     Tensor* output = getValues(input, batchSize);
     float* outputData = output->getData();
 
-    for(int i=0; i<input.size(); i++) {
+    for(int i=0; i<input.getSize(); i++) {
         outputData[i] *= (1-outputData[i]);
     }
     return output;

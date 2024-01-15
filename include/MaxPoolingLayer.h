@@ -22,7 +22,7 @@ public:
     std::string toString();
     void changeInputShape(const std::vector<int> &newInputShape);
 
-    Tensor *addPaddingToBatchData(const Tensor &input);
+    static Tensor *addPaddingToBatchData(const Tensor &input, int paddingValue);
 
     Tensor *getPreActivationValuesTest(Tensor *input);
 

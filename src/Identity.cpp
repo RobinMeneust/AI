@@ -25,10 +25,10 @@ Tensor * Identity::getValues(const Tensor &input, int batchSize) {
  */
 
 Tensor* Identity::getDerivatives(const Tensor &input, int batchSize) {
-    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
+    Tensor* output = new Tensor(input.getDimSizes());
     float* outputData = output->getData();
 
-    for(int i=0; i<input.size(); i++) {
+    for(int i=0; i<input.getSize(); i++) {
         outputData[i] = 1;
     }
 

@@ -18,11 +18,11 @@
  * @param nbNeuronsPrevLayer Number of neurons of the previous layer (input size)
  * @param activationFunction Activation function used (Softmax, Sigmoid...)
  */
-DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction *activationFunction) : Layer({nbNeuronsPrevLayer},{nbNeurons}, activationFunction), weights(new Tensor(2, {nbNeurons, nbNeuronsPrevLayer})), biases(nullptr) {
+DenseLayer::DenseLayer(int nbNeurons, int nbNeuronsPrevLayer, ActivationFunction *activationFunction) : Layer({nbNeuronsPrevLayer},{nbNeurons}, activationFunction), weights(new Tensor({nbNeurons, nbNeuronsPrevLayer})), biases(nullptr) {
     initParams();
 }
 
-DenseLayer::DenseLayer(int nbNeurons, ActivationFunction *activationFunction) : Layer({},{nbNeurons}, activationFunction), weights(new Tensor(0,{})), biases(nullptr) {}
+DenseLayer::DenseLayer(int nbNeurons, ActivationFunction *activationFunction) : Layer({},{nbNeurons}, activationFunction), weights(new Tensor({})), biases(nullptr) {}
 
 /**
  * Copy a dense neuron layer
@@ -100,7 +100,7 @@ int DenseLayer::getNbNeuronsPrevLayer() {
  */
 
 Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
-    Tensor* output = new Tensor(2, {input.getDimSize(0),getNbNeurons()});
+    Tensor* output = new Tensor({input.getDimSize(0),getNbNeurons()});
 
     float* outputData = output->getData();
     float* weightsData = weights->getData();
@@ -252,7 +252,7 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
  * @return Weight w_i,j
  */
 Tensor* DenseLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) {
-    Tensor* output = new Tensor(1, {1});
+    Tensor* output = new Tensor({1});
     output->set({0},getWeight(currentLayerOutputIndex, prevLayerOutputIndex));
     return output;
 }
@@ -296,6 +296,6 @@ void DenseLayer::changeInputShape(const std::vector<int> &newInputShape) {
     }
 
     delete weights;
-    weights = new Tensor(2, {getNbNeurons(), getNbNeuronsPrevLayer()});
+    weights = new Tensor({getNbNeurons(), getNbNeuronsPrevLayer()});
     initParams();
 }

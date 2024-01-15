@@ -10,16 +10,10 @@
 
 /**
  * Create a tensor from a shape and allocate memory for the data without initializing its values
- * @param nDim Number of dimensions
  * @param dimSizes List of dimension sizes
  */
-Tensor::Tensor(int nDim, const std::vector<int> &dimSizes) : nDim(nDim), dimSizes(dimSizes) {
+Tensor::Tensor(const std::vector<int> &dimSizes) : nDim(dimSizes.size()), dimSizes(dimSizes), size(0) {
     strides = new int[nDim];
-
-    if(nDim != dimSizes.size()) {
-        std::cerr << "ERROR: The provided number of dimensions does not match with the size of the dimension sizes array" << std::endl;
-        exit(EXIT_FAILURE);
-    }
 
     int stepSize = 1;
     for(int i=nDim-1; i>=0; i--) {
@@ -27,7 +21,9 @@ Tensor::Tensor(int nDim, const std::vector<int> &dimSizes) : nDim(nDim), dimSize
         stepSize *= dimSizes[i];
     }
 
-    data = new float[stepSize]; // Here stepSize = product of all dim sizes
+    size = stepSize;
+
+    data = new float[size];
 
 }
 
@@ -35,8 +31,8 @@ Tensor::Tensor(int nDim, const std::vector<int> &dimSizes) : nDim(nDim), dimSize
  * Create a tensor by copying another one
  * @param copy Tensor copied
  */
-Tensor::Tensor(Tensor const& copy) : Tensor(copy.getNDim(), copy.getDimSizes()){
-    for(int i=0; i<copy.size(); i++) {
+Tensor::Tensor(Tensor const& copy) : Tensor(copy.getDimSizes()){
+    for(int i=0; i<copy.getSize(); i++) {
         data[i] = copy.data[i];
     }
 }
@@ -44,18 +40,11 @@ Tensor::Tensor(Tensor const& copy) : Tensor(copy.getNDim(), copy.getDimSizes()){
 /**
  * Create a tensor from its shape and with initial data
  * @remark You can delete the data after since we copy it in this function. The size of the initData must match with the shape of the tensor
- * @param nDim Number of dimensions
  * @param dimSizes List of dimension sizes
  * @param initData Data that will be copied in the tensor
  */
-Tensor::Tensor(int nDim, const std::vector<int> &dimSizes, const float *initData) : Tensor(nDim, dimSizes) {
-    // TODO: It's repetitive to give both a vector (contain a size field) and the size of the vector (nDim). It should be deleted
-    int size = 1;
-    for(auto &s:dimSizes) {
-        size *= s;
-    }
-
-    for(int i=0; i<size; i++) {
+Tensor::Tensor(const std::vector<int> &dimSizes, const float *initData) : Tensor(dimSizes) {
+    for(int i=0; i<getSize(); i++) {
         data[i] = initData[i];
     }
 }
@@ -157,7 +146,7 @@ float * Tensor::getData() const {
 std::string Tensor::toString() {
     float* data = getData();
     std::string s;
-    for(int i=0; i<size(); i++) {
+    for(int i=0; i<getSize(); i++) {
         s.append(std::to_string(data[i]));
         s.append(" ");
     }
@@ -168,11 +157,7 @@ std::string Tensor::toString() {
  * Get the size of the tensor (product of the sizes of all the dimensions)
  * @return Size of the tensor
  */
-int Tensor::size() const {
-    int size = 1;
-    for(int i=0; i<getNDim(); i++) {
-        size *= getDimSize(i);
-    }
+int Tensor::getSize() const {
     return size;
 }
 

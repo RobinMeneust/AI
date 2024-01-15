@@ -15,11 +15,11 @@
  */
 
 Tensor * Relu::getValues(const Tensor &input, int batchSize) {
-    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
+    Tensor* output = new Tensor(input.getDimSizes());
     float* outputData = output->getData();
     float* inputData = input.getData();
 
-    for(int i=0; i<output->size(); i++) {
+    for(int i=0; i<output->getSize(); i++) {
         outputData[i] = inputData[i] <= 0 ? 0 : inputData[i];
     }
     return output;
@@ -33,11 +33,11 @@ Tensor * Relu::getValues(const Tensor &input, int batchSize) {
  */
 
 Tensor* Relu::getDerivatives(const Tensor &input, int batchSize) {
-    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes());
+    Tensor* output = new Tensor(input.getDimSizes());
     float* outputData = output->getData();
     float* inputData = input.getData();
 
-    for(int i=0; i<output->size() ; i++) {
+    for(int i=0; i<output->getSize() ; i++) {
         outputData[i] = inputData[i] <= 0 ? 0 : 1;
     }
     return output;

@@ -50,7 +50,7 @@ void NeuralNetwork::addLayer(Layer* newLayer) {
  * @return Output tensor
  */
 Tensor * NeuralNetwork::evaluate(const Tensor &input) {
-    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes(), input.getData());
+    Tensor* output = new Tensor(input.getDimSizes(), input.getData());
     bool isFirstIter = true;
     Tensor* newOutput;
 
@@ -82,7 +82,7 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
         newDims.push_back(layers->getLayer(layerIndex - 1)->getOutputSize(i));
     }
 
-    Tensor* nextCostDerivatives = new Tensor(newDims.size(), newDims);
+    Tensor* nextCostDerivatives = new Tensor(newDims);
     float* nextCostDerivativesData = nextCostDerivatives->getData();
 
     Tensor* nextActivationDerivatives = layers->getLayer(layerIndex-1)->getActivationDerivatives(*weightedSumsPrevLayer);
@@ -147,7 +147,7 @@ void NeuralNetwork::fit(const Batch &batch) {
 
 
     float invSize = 1.0f/layers->getLayer(getNbLayers()-1)->getOutputSize(0);
-    for(int i=0; i<currentCostDerivatives->size(); i++) {
+    for(int i=0; i<currentCostDerivatives->getSize(); i++) {
         currentCostDerivativesData[i] *= invSize * activationDerivativesData[i];
     }
 
@@ -188,7 +188,7 @@ void NeuralNetwork::fit(const Batch &batch) {
 
 Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch &batch) {
     int outputSize = layers->getLayer(getNbLayers()-1)->getOutputSize(0);
-    Tensor* lossDerivative = new Tensor(2,{batch.getSize(), outputSize});
+    Tensor* lossDerivative = new Tensor({batch.getSize(), outputSize});
     float* lossDerivativeData = lossDerivative->getData();
     float* predictionData = prediction.getData();
     int k=0;
