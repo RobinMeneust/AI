@@ -21,6 +21,12 @@ public:
     Tensor* getPreActivationValues(const Tensor &input);
     std::string toString();
     void changeInputShape(const std::vector<int> &newInputShape);
+
+    Tensor *addPaddingToBatchData(const Tensor &input);
+
+    Tensor *getPreActivationValuesTest(Tensor *input);
+
+    Tensor *addPaddingToBatchData(Tensor *input);
 };
 
 

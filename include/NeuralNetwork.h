@@ -36,12 +36,12 @@ public:
     void addLayer(Layer* newLayer);
     Tensor * evaluate(const Tensor &input);
     Tensor* getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex);
-    void fit(Batch batch);
+    void fit(const Batch &batch);
     Tensor* getCostDerivatives(const Tensor &prediction, const Batch &batch);
     void setLearningRate(float newValue);
 //    void save(std::string fileName);
-    int predict(const Tensor &input);
-    float getAccuracy(const std::vector<Instance*> &testSet);
+    std::vector<int> predict(const Tensor &input);
+    float getAccuracy(const Batch &batch);
     void save(const std::string& fileName);
 };
 

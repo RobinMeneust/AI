@@ -20,6 +20,8 @@
 #include "../include/Conv2DLayer.h"
 #include <chrono>
 
+Batch *instancesListToBatch(std::vector<Instance *> instancesList);
+
 using namespace cv;
 
 /**
@@ -50,8 +52,10 @@ NeuralNetwork* initNN() {
 //    network->addLayer(new Conv2DLayer(10, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels 3x3 (output shape = (100x14x14)), stride 1, padding 2
 //    network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (100x7x7)), stride 2, padding 0
     network->addLayer(new FlattenLayer()); // (output shape = (100*7*7))
-    network->addLayer(new DenseLayer(128, new LeakyRelu()));
-    network->addLayer(new DenseLayer(64, new LeakyRelu()));
+//    network->addLayer(new DenseLayer(128, new LeakyRelu()));
+//    network->addLayer(new DenseLayer(64, new LeakyRelu()));
+    network->addLayer(new DenseLayer(512, new LeakyRelu()));
+    network->addLayer(new DenseLayer(10, new Softmax()));
     network->setLearningRate(0.03f);
 
     return network;
@@ -184,6 +188,11 @@ std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> datase
 
     int instanceSize = dataset[0]->getData()->size();
 
+    std::vector<int> dimSizeBatch = {batchSize};
+    for(int i=0; i<dataset[0]->getData()->getNDim(); i++) {
+        dimSizeBatch.push_back(dataset[0]->getData()->getDimSize(i));
+    }
+
     int k=0;
     for(int i=0; i<dataset.size()/batchSize; i++) {
         float* batchDataHead = new float[batchSize*instanceSize];
@@ -199,7 +208,7 @@ std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> datase
             k++;
         }
 
-        Batch* batch = new Batch(2, {batchSize, instanceSize}, batchDataHead, targets);
+        Batch* batch = new Batch(dimSizeBatch.size(), dimSizeBatch, batchDataHead, targets);
         delete[] batchDataHead;
         batches.push_back(batch);
 
@@ -214,12 +223,6 @@ std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> datase
 
 int main()
 {
-    NeuralNetwork* network = initNN();
-    std::cout << "ANN created" << std::endl;
-
-    std::vector<Instance*> trainingSet;
-    std::vector<Instance*> testSet;
-
     int nbEpochs = 100;
     int batchSize = 64;
 
@@ -230,9 +233,43 @@ int main()
         }
     }
 
+//    MaxPoolingLayer* testLayer = new MaxPoolingLayer({2, 2}, 2, 0);
+//    testLayer->changeInputShape({28,28});
+//    std::vector<Instance*> testInstancesTemp = getDataset(false, expectedResult, 1);
+//    Tensor* data = new Tensor(3, {1, 28, 28}, testInstancesTemp[0]->getData()->getData());
+//
+//    for(int i=0; i<28; i++) {
+//        for(int j=0; j<28; j++) {
+//            std::cout << data->get({0,i,j}) << " ";
+//        }
+//        std::cout << std::endl;
+//    }
+//    std::cout << std::endl;
+//
+//    Tensor* result = testLayer->getPreActivationValues(*data);
+//
+//    for(int i=0; i<result->getDimSize(1); i++) {
+//        for(int j=0; j<result->getDimSize(2); j++) {
+//            std::cout << result->get({0,i,j}) << " ";
+//        }
+//        std::cout << std::endl;
+//    }
+//    std::cout << std::endl;
+
+
+    NeuralNetwork* network = initNN();
+    std::cout << "ANN created" << std::endl;
+
+    std::vector<Instance*> trainingSet;
+    std::vector<Instance*> testSet;
+
+
+
     std::cout << "Fetching and transforming data..." << std::endl;
     trainingSet = getDataset(false, expectedResult,300);
+
     testSet = getDataset(true, expectedResult, 50);
+    Batch* testBatch = instancesListToBatch(testSet);
 
 
     // TRAIN
@@ -254,7 +291,7 @@ int main()
         std::string fileName = "log.txt";
 //        network->save(fileName);
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start);
-        std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(testSet) << " took: " << duration.count() << "s" << std::endl;
+        std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(*testBatch) << " took: " << duration.count() << "s" << std::endl;
 
         // Clear batch data
         for(int i=0; i<batches.size(); i++) {
@@ -279,4 +316,31 @@ int main()
     delete network;
 
 	return 0;
+}
+
+Batch *instancesListToBatch(std::vector<Instance *> instancesList) {
+    int instanceSize = instancesList[0]->getData()->size();
+
+    int batchSize = (int)instancesList.size();
+
+    std::vector<int> dimSizeBatch = {(int)instancesList.size()};
+    for(int i=0; i<instancesList[0]->getData()->getNDim(); i++) {
+        dimSizeBatch.push_back(instancesList[0]->getData()->getDimSize(i));
+    }
+
+    std::vector<float*> targets;
+    float* batchDataHead = new float[batchSize*instanceSize];
+
+    float* batchData = batchDataHead;
+    for(int i=0; i<batchSize; i++) {
+        float* instanceData = instancesList[i]->getData()->getData();
+        targets.push_back(instancesList[i]->getOneHotLabel());
+
+        std::copy(instanceData, instanceData + instanceSize, batchData);
+        batchData += instanceSize;
+    }
+
+    Batch* batch = new Batch(dimSizeBatch.size(), dimSizeBatch, batchDataHead, targets);
+    delete[] batchDataHead;
+    return batch;
 }

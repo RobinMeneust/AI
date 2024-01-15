@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <iomanip>
 
 /**
  * Default constructor for the neural network
@@ -49,17 +50,9 @@ void NeuralNetwork::addLayer(Layer* newLayer) {
  * @return Output tensor
  */
 Tensor * NeuralNetwork::evaluate(const Tensor &input) {
-    // We need the input to be considered as a batch of size 1
-    // TODO: Move some of this function code to main(), we should only accept one representation: a tensor whose first dim is the batch size
-    std::vector<int> dimSizes;
-    dimSizes.push_back(1);
-    for(int i=0; i<input.getNDim(); i++) {
-        dimSizes.push_back(input.getDimSize(i));
-    }
-
-    Tensor* output = new Tensor(input.getNDim()+1, dimSizes, input.getData());
+    Tensor* output = new Tensor(input.getNDim(), input.getDimSizes(), input.getData());
     bool isFirstIter = true;
-    Tensor* newOutput = nullptr;
+    Tensor* newOutput;
 
     for(int i=0; i<getNbLayers(); i++) {
         newOutput = layers->getLayer(i)->getOutput(*output);
@@ -126,7 +119,7 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
  * Train the network with the given batch of instances
  * @param batch Batch of instances (input data + target output)
  */
-void NeuralNetwork::fit(Batch batch) {
+void NeuralNetwork::fit(const Batch &batch) {
     if(batch.getSize()<=0) {
         std::cerr << "WARNING: the batch size is null" << std::endl;
         return;
@@ -174,6 +167,7 @@ void NeuralNetwork::fit(Batch batch) {
 
         delete currentCostDerivatives;
         currentCostDerivatives = nextCostDerivatives;
+        nextCostDerivatives = nullptr;
     }
 
     for(int i=0; i<getNbLayers(); i++) {
@@ -194,18 +188,18 @@ void NeuralNetwork::fit(Batch batch) {
 
 Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch &batch) {
     int outputSize = layers->getLayer(getNbLayers()-1)->getOutputSize(0);
-    float* newData = new float[batch.getSize() * outputSize];
+    Tensor* lossDerivative = new Tensor(2,{batch.getSize(), outputSize});
+    float* lossDerivativeData = lossDerivative->getData();
     float* predictionData = prediction.getData();
     int k=0;
+
     for(int b=0; b<batch.getSize(); b++) {
         for(int i=0; i<outputSize; i++) {
-            newData[k] = predictionData[k] - batch.getTarget(b)[i];
+            lossDerivativeData[k] = predictionData[k] - batch.getTarget(b)[i];
             k++;
         }
     }
 
-    Tensor* lossDerivative = new Tensor(2,{batch.getSize(), outputSize}, newData); // The size should be given in the parameters instead of being hard coded
-    delete[] newData;
     return lossDerivative;
 }
 
@@ -225,18 +219,31 @@ void NeuralNetwork::setLearningRate(float newValue) {
 /**
  * Predict the label of the given input
  * @param input Input tensor
- * @return Label of the input tensor: number between 0 and the size of the last layer - 1, depending on which component of the output was the highest
+ * @return Labels of the batch of input tensor: numbers between 0 and the size of the last layer - 1, depending on which component of the output was the highest
  */
-int NeuralNetwork::predict(const Tensor &input) {
+
+std::vector<int> NeuralNetwork::predict(const Tensor &input) {
     Tensor* output = evaluate(input);
     float* outputData = output->getData();
-    int i_max = 0;
-    for(int i=1; i<layers->getLayer(getNbLayers()-1)->getOutputSize(0); i++) {
-        if(outputData[i] > outputData[i_max])
-            i_max = i;
+
+    std::vector<int> predictions;
+
+    int k = 0;
+    for(int b=0; b<input.getDimSize(0); b++) {
+        int i_max = 0;
+        int k_max = k;
+        k++;
+        for (int i = 1; i < layers->getLayer(getNbLayers() - 1)->getOutputSize(0); i++) {
+            if (outputData[k] > outputData[k_max]) {
+                i_max = i;
+                k_max = k;
+            }
+            k++;
+        }
+        predictions.push_back(i_max);
     }
     delete output;
-    return i_max;
+    return predictions;
 }
 
 /**
@@ -245,14 +252,29 @@ int NeuralNetwork::predict(const Tensor &input) {
  * @return Accuracy (between 0 and 1)
  */
 
-float NeuralNetwork::getAccuracy(const std::vector<Instance*> &testSet) {
+float NeuralNetwork::getAccuracy(const Batch &batch) {
     int validPredictions = 0;
-    for(int i=0; i<testSet.size(); i++) {
-        if (testSet[i]->getOneHotLabel()[predict(*(testSet[i]->getData()))] == 1) {
+
+    std::vector<int> predictions = predict(*batch.getData());
+
+//    int k = 0;
+//    for(int i=0;i<28; i++) {
+//        for(int j=0;j<28; j++) {
+//            std::cout << std::fixed << std::setprecision(0) << batch.getData()->getData()[k] << " ";
+//            k++;
+//        }
+//        std::cout << std::endl;
+//    }
+//    std::cout << std::endl;
+
+
+    for(int b=0; b<batch.getSize(); b++) {
+        if (batch.getTarget(b)[predictions[b]] == 1) {
             validPredictions++;
         }
     }
-    return ((float)validPredictions/(float)testSet.size());
+
+    return ((float)validPredictions/(float)batch.getSize());
 }
 
 

@@ -25,7 +25,7 @@ public:
     ~Batch() = default;
     int getSize() const;
     float * getTarget(int i) const;
-    Tensor *getData();
+    Tensor * getData() const;
 };
 
 #endif

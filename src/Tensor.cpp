@@ -27,9 +27,6 @@ Tensor::Tensor(int nDim, const std::vector<int> &dimSizes) : nDim(nDim), dimSize
         stepSize *= dimSizes[i];
     }
 
-    if(nDim==2 && dimSizes[0] == 512) {
-        std::cout  << "test " << strides[0] << " " << strides[1] << " " << stepSize << std::endl;
-    }
     data = new float[stepSize]; // Here stepSize = product of all dim sizes
 
 }
@@ -52,6 +49,7 @@ Tensor::Tensor(Tensor const& copy) : Tensor(copy.getNDim(), copy.getDimSizes()){
  * @param initData Data that will be copied in the tensor
  */
 Tensor::Tensor(int nDim, const std::vector<int> &dimSizes, const float *initData) : Tensor(nDim, dimSizes) {
+    // TODO: It's repetitive to give both a vector (contain a size field) and the size of the vector (nDim). It should be deleted
     int size = 1;
     for(auto &s:dimSizes) {
         size *= s;

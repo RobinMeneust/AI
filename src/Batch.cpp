@@ -16,6 +16,7 @@
  */
 Batch::Batch(int nDimData, std::vector<int> dimSizes, float *data, const std::vector<float *> &targets) : size(dimSizes[0]), data(new Tensor(nDimData, dimSizes, data)), targets(targets) {}
 
+
 /**
  * Get the size of the batch (number of instances)
  * @return Size of the batch
@@ -28,7 +29,7 @@ int Batch::getSize() const {
  * Get the data of this batch
  * @return A tensor containing the data of the batch
  */
-Tensor* Batch::getData() {
+Tensor * Batch::getData() const {
     return data;
 }
 
