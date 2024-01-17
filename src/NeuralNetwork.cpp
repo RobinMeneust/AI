@@ -5,7 +5,7 @@
  * @date 2022-12-14
  */
 
-#include "../include/neuralNetwork.h"
+#include "../include/NeuralNetwork.h"
 #include <iostream>
 #include <fstream>
 
