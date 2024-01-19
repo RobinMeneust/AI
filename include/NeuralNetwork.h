@@ -35,7 +35,7 @@ public:
     int getNbLayers();
     void addLayer(Layer* newLayer);
     Tensor * evaluate(const Tensor &input);
-    Tensor* getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex);
+    Tensor* getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, Tensor* outputsPrevLayer, int layerIndex);
     void fit(const Batch &batch);
     Tensor* getCostDerivatives(const Tensor &prediction, const Batch &batch);
     void setLearningRate(float newValue);

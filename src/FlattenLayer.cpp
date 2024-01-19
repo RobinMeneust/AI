@@ -22,13 +22,7 @@ Tensor* FlattenLayer::getOutput(const Tensor &input) {
 
 void FlattenLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput) {}
 
-Tensor* FlattenLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) {
-    Tensor* output = new Tensor({1});
-    output->set({0},currentLayerOutputIndex == prevLayerOutputIndex ? 1 : 0);
-    return output;
-}
-
-Tensor *FlattenLayer::getPreActivationDerivatives() {
+Tensor *FlattenLayer::getPreActivationDerivatives(const Tensor &input) {
     Tensor* output = new Tensor({getOutputSize(),getInputSize()});
     float* outputData = output->getData();
 

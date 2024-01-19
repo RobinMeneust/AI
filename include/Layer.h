@@ -65,18 +65,10 @@ public:
     virtual void adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput) = 0;
 
     /**
-     * Get the derivative of the pre-activation function output i (input of the activation function) in respect for the input j (output of the previous layer)
-     * @param currentLayerOutputIndex Index i (associated to output, it's the function fi in dfi/dxj)
-     * @param prevLayerOutputIndex Index j (associated to input, it's the component xj in dfi/dxj)
-     * @return Tensor of the derivatives dfi/dxj for the given i and j
-     */
-    virtual Tensor* getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) = 0;
-
-    /**
      * Get the derivatives of the pre-activation function output i (input of the activation function) in respect for the input j (output of the previous layer) for all i,j
      * @return Tensor of the derivatives dfi/dxj for all i,j
      */
-    virtual Tensor* getPreActivationDerivatives() = 0;
+    virtual Tensor* getPreActivationDerivatives(const Tensor &input) = 0;
 
     /**
      * Get the pre-activations values of the layer for the given input. It's the input of the activation function

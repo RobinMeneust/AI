@@ -72,7 +72,7 @@ Tensor * NeuralNetwork::evaluate(const Tensor &input) {
  * @param layerIndex Index of the current layer (where currentCostDerivatives is used to adjust the weights and biases)
  * @return Derivatives of the total cost in respect for the output of the layer (layerIndex - 1)
  */
-Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, int layerIndex) {
+Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Tensor* weightedSumsPrevLayer, Tensor* outputsPrevLayer, int layerIndex) {
     int batchSize = currentCostDerivatives->getDimSize(0);
     int prevLayerOutputSize = layers->getLayer(layerIndex - 1)->getOutputSize();
     int layerOutputSize = layers->getLayer(layerIndex)->getOutputSize();
@@ -90,7 +90,7 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
 
     float* currentCostDerivativesData = currentCostDerivatives->getData();
 
-    Tensor* preActivationDerivatives = layers->getLayer(layerIndex)->getPreActivationDerivatives();
+    Tensor* preActivationDerivatives = layers->getLayer(layerIndex)->getPreActivationDerivatives(*outputsPrevLayer);
     float* preActivationDerivativesData = preActivationDerivatives->getData();
 
     int p1=0;
@@ -158,7 +158,7 @@ void NeuralNetwork::fit(const Batch &batch) {
     for(int l=getNbLayers()-1; l>=0; l--) {
         // Next cost derivatives computation
         if (l>0) {
-            nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], l);
+            nextCostDerivatives = getNextCostDerivatives(currentCostDerivatives, weightedSums[l-1], outputs[l-1], l);
         }
 
         // Adjust the weights and biases of the current layer

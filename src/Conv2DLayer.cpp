@@ -90,11 +90,7 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
     //TODO
 }
 
-Tensor *Conv2DLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) {
-    return nullptr; //TODO
-}
-
-Tensor *Conv2DLayer::getPreActivationDerivatives() {
+Tensor *Conv2DLayer::getPreActivationDerivatives(const Tensor &input) {
     return nullptr; //TODO
 }
 

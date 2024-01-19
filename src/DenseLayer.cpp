@@ -245,23 +245,10 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
 }
 
 /**
- * Get the derivative of the weighted sum for the neuron i of the current layer in respect for the input j (output of the previous layer). This is the weight w_i,j of the neuron currentLayerOutputIndex in the current layer that is associated to the neuron prevLayerOutputIndex in the previous layer
- * @remark This is less efficient than the function getPreActivationDerivatives() with no argument since here we need to recalculate the index of the element for every call.
- * @param currentLayerOutputIndex Index i (ith neuron of the current layer)
- * @param prevLayerOutputIndex Index j (jth neuron of the previous layer)
- * @return Weight w_i,j
- */
-Tensor* DenseLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) {
-    Tensor* output = new Tensor({1});
-    output->set({0},getWeight(currentLayerOutputIndex, prevLayerOutputIndex));
-    return output;
-}
-
-/**
  * Get the derivative of the weighted sum for all i,j in respect for the input j (output of the previous layer). This is the weight w_i,j of the neuron currentLayerOutputIndex in the current layer that is associated to the neuron prevLayerOutputIndex in the previous layer
  * @return Tensor of rank 2 containing all the weights weight w_i,j
  */
-Tensor *DenseLayer::getPreActivationDerivatives() {
+Tensor *DenseLayer::getPreActivationDerivatives(const Tensor &input) {
     return weights;
 }
 

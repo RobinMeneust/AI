@@ -3,6 +3,8 @@
 //
 
 #include <iostream>
+#include <cfloat>
+#include <cmath>
 #include "../include/MaxPoolingLayer.h"
 #include "../include/Identity.h"
 
@@ -47,12 +49,85 @@ Tensor *MaxPoolingLayer::getOutput(const Tensor &input) {
 
 void MaxPoolingLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput) {}
 
-Tensor *MaxPoolingLayer::getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex) {
-    return nullptr; //TODO
-}
 
-Tensor *MaxPoolingLayer::getPreActivationDerivatives() {
-    return nullptr; //TODO
+Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
+    std::vector<int> outputShapeWithBatch = {input.getDimSize(0)};
+
+    // Here the output tensor is like a tensor of the same dimensions of the output of this layer where each of its component is a tensor with the same dimension of the input.
+    // So that we have dz/da for each z and a of the output of the layer and input of the layer
+    // The shape is: (batch size, nb 2D outputs, height of 2D outputs, width, nb 2D inputs, height of 2D inputs, width)
+
+    for(int i=0; i<outputShape.size(); i++) {
+        outputShapeWithBatch.push_back(outputShape[i]);
+    }
+    for(int i=0; i<inputShape.size(); i++) {
+        outputShapeWithBatch.push_back(outputShape[i]);
+    }
+
+    Tensor* derivatives = new Tensor(outputShapeWithBatch);
+    float* derivativesData = derivatives->getData();
+
+    int nb2DFrames = 1;
+    if(getOutputDim() == 4) {
+        nb2DFrames = getOutputSize(1);
+    }
+
+    float* inputData = input.getData();
+
+    int inputWidth = input.getNDim() == 3 ? input.getDimSize(1) : input.getDimSize(0);
+    int inputHeight = input.getNDim() == 3 ? input.getDimSize(2) : input.getDimSize(1);
+
+    int outputWidth = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(0);
+    int outputHeight = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
+
+    int p = 0;
+    int paddingTopLeft = padding/2;
+
+    for(int nOut=0; nOut<nb2DFrames*outputShapeWithBatch[0]; nOut++) {
+        // For each 2D inputs compute Max-pooling
+        for(int yOut=0; yOut<=outputHeight; yOut++) {
+            for(int xOut=0; xOut<=outputWidth; xOut++) {
+                // For each output element, compute the derivatives in respect to the previous layer elements
+
+                // Get the x and y coordinate of the max input element associated to the current output element
+                int xArgmax = -1;
+                int yArgMax = -1;
+
+                float max = -INFINITY;
+
+                int x = xOut*stride - paddingTopLeft;
+                int y = yOut*stride - paddingTopLeft;
+
+                int pInput = x + inputWidth*y;
+                for(int yKernel=0; yKernel<kernelDimSizes[1]; yKernel++) {
+                    if(y>=0) {
+                        for (int xKernel = 0; xKernel < kernelDimSizes[0]; xKernel++) {
+                            if (x >= 0 && inputData[pInput] > max) {
+                                max = inputData[pInput];
+                                xArgmax = x;
+                                yArgMax = y;
+                            }
+                            pInput ++;
+                            x++;
+                        }
+                    }
+                    pInput += inputWidth;
+                    y++;
+                }
+
+                for(int nIn=0; nIn<nb2DFrames; nIn++) {
+                    for (int yIn = 0; yIn <= inputHeight; yIn++) {
+                        for (int xIn = 0; xIn <= inputHeight; xIn++) {
+                            derivativesData[p] = (xArgmax == yIn && yArgMax == xIn) ? 1 : 0;
+                            p++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return derivatives;
 }
 
 Tensor *MaxPoolingLayer::getPreActivationValues(const Tensor &input) {
@@ -85,10 +160,8 @@ Tensor *MaxPoolingLayer::getPreActivationValues(const Tensor &input) {
     int inputWidth = input.getNDim() == 3 ? inputWithPadding->getDimSize(1) : inputWithPadding->getDimSize(0);
     int inputHeight = input.getNDim() == 3 ? inputWithPadding->getDimSize(2) : inputWithPadding->getDimSize(1);
 
-    int xUpperBound = inputWidth-kernelDimSizes[0];
-    xUpperBound = (xUpperBound/stride) * stride;
-    int yUpperBound = inputHeight-kernelDimSizes[1];
-    yUpperBound = (yUpperBound/stride) * stride;
+    int xUpperBound = floor(inputWidth-kernelDimSizes[0]);
+    int yUpperBound = floor(inputHeight-kernelDimSizes[1]);
 
     int remainderInput = inputWidth - xUpperBound - stride + (stride-1)*inputWidth;
 

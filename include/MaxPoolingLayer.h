@@ -16,8 +16,7 @@ public:
     MaxPoolingLayer(const std::vector<int> &kernelDimSizes, int stride, int padding);
     Tensor* getOutput(const Tensor &input);
     void adjustParams(float learningRate, Tensor* currentCostDerivatives, Tensor* prevLayerOutput);
-    Tensor* getPreActivationDerivatives(int currentLayerOutputIndex, int prevLayerOutputIndex);
-    Tensor* getPreActivationDerivatives();
+    Tensor* getPreActivationDerivatives(const Tensor &input);
     Tensor* getPreActivationValues(const Tensor &input);
     std::string toString();
     void changeInputShape(const std::vector<int> &newInputShape);
