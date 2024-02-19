@@ -18,6 +18,7 @@ Tensor * LeakyRelu::getValues(const Tensor &input, int batchSize) {
     float* outputData = output->getData();
     float* inputData = input.getData();
 
+    #pragma omp parallel for
     for(int i=0; i<output->getSize(); i++) {
         outputData[i] = inputData[i] <= 0 ? 0.01f * inputData[i] : inputData[i];
     }
@@ -35,6 +36,7 @@ Tensor* LeakyRelu::getDerivatives(const Tensor &input, int batchSize) {
     float* outputData = output->getData();
     float* inputData = input.getData();
 
+    #pragma omp parallel for
     for(int i=0; i<output->getSize() ; i++) {
         outputData[i] = inputData[i] <= 0 ? 0.01f : 1;
     }

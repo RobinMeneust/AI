@@ -5,7 +5,11 @@ project(CPP_AI_Project LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_INCLUDE_DIRS} )
+find_package( OpenMP REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} OpenMP::OpenMP_CXX)
+
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GTK_CFLAGS} -fopenmp")
 
 add_executable(${PROJECT_NAME}
         src/main.cpp

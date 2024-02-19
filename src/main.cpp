@@ -61,56 +61,18 @@ NeuralNetwork* initNN() {
     return network;
 }
 
-// WILL BE MOVED TO ANOTHER FILE: will be a layer (the Conv2D layer)
-//Mat conv2D(Mat input, int kernelWidth) {
-//    std::cout << "nrows: " << input.rows << " ncols: " << input.cols << std::endl;
-//    std::srand(std::time(nullptr));
-//
-//    int resultWidth = input.cols-kernelWidth+1;
-//    int resultHeight = input.rows-kernelWidth+1;
-//
-//    float* resultArray = new float[resultWidth*resultHeight];
-//    float kernel[kernelWidth][kernelWidth];
-//    for(int x=0; x<kernelWidth; x++) {
-//        for(int y=0; y<kernelWidth; y++) {
-//            kernel[x][y] = ((float) (rand() % 11) / 5.0f) -1.0f;
-//        }
-//    }
-//
-//    int k = 0;
-//    for(int x=0; x<input.cols-kernelWidth+1; x++) {
-//        for(int y=0; y<input.rows-kernelWidth+1; y++) {
-////            std::cout << "x " << x << " y " << y << std::endl;
-//            resultArray[k] = 0.0f;
-//            for(int i=0; i<kernelWidth; i++) {
-//                for(int j=0; j<kernelWidth; j++) {
-//                    if(x==16) {
-////                        std::cout << "k " << k << " i " <<i << " j " << j << " x+i " << x+i << " y+j " << y+j << " : " << input.at<Vec3b>(x + i, y + j)[0] << std::endl;
-//                    }
-//                    resultArray[k] += input.at<Vec3b>(x + i, y + j)[0] * kernel[i][j];
-//                }
-//            }
-//            k++;
-//        }
-//    }
-//    return Mat(resultWidth,resultHeight,CV_32FC1,resultArray);
-//}
-
-// WILL BE MOVED TO ANOTHER CLASS (will be a layer: the flatten layer)
 /**
- * Flatten the given matrix to a 1D array
- * @param matrix Matrix that will be flattened
- * @param width Width of the matrix
- * @param height Height of the matrix
+ * Flatten an OpenCV matrix to a 1D float array
+ * @param matrix Matrix that will be flattened (one channel)
  * @return Flattened matrix
  */
-float* flatten(Mat matrix, int width, int height) {
-    float* flattenArray = new float[width*height];
+float* flattenOpenCVMat(Mat mat) {
+    float* flattenArray = new float[mat.cols * mat.rows];
 
     int i = 0;
-    for(int x=0; x<width; x++){
-        for(int y=0; y<height; y++){
-            flattenArray[i] = matrix.at<Vec3b>(x, y)[0];
+    for(int x=0; x<mat.cols; x++){
+        for(int y=0; y<mat.rows; y++){
+            flattenArray[i] = mat.at<Vec3b>(x, y)[0];
             i++;
         }
     }
@@ -149,7 +111,7 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], 
             Mat normalizedImage;
             cv::normalize(image, normalizedImage, 0, 1, cv::NORM_MINMAX);
 
-            float* flattenInput = flatten(normalizedImage, 28, 28);
+            float* flattenInput = flattenOpenCVMat(normalizedImage);
             Instance* instance = new Instance(new Tensor({28,28}, flattenInput), expectedResult[i]);
             delete[] flattenInput;
 
@@ -211,7 +173,6 @@ std::vector<Batch*> generateBatches(int batchSize, std::vector<Instance*> datase
         Batch* batch = new Batch(dimSizeBatch.size(), dimSizeBatch, batchDataHead, targets);
         delete[] batchDataHead;
         batches.push_back(batch);
-
     }
     return batches;
 }

@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <bits/stdc++.h>
+#include <omp.h>
 
 
 /**
@@ -109,21 +110,27 @@ Tensor* DenseLayer::getPreActivationValues(const Tensor &input) {
     int nbNeuronsPrevLayer = getNbNeuronsPrevLayer();
     int nbNeurons = getNbNeurons();
 
-    for(int b=0; b<input.getDimSize(0); b++) {
-        int k = 0;
-        int p = nbNeurons * b;
+    #pragma omp parallel
+    {
+        #pragma omp for
+        for (int b = 0; b < input.getDimSize(0); b++) {
+            int k = 0;
+            int p = nbNeurons * b;
 
-        int p2Init = b*nbNeuronsPrevLayer;
-        for (int i = 0; i < nbNeurons; i++) {
-            outputData[p] = getBias(i);
-            int p2 = p2Init;
+            int p2Init = b * nbNeuronsPrevLayer;
+            for (int i = 0; i < nbNeurons; i++) {
+                outputData[p] = getBias(i);
+                int p2 = p2Init;
 
-            for (int j = 0; j < nbNeuronsPrevLayer; j++) {
-                outputData[p] += inputData[p2] * weightsData[k];
-                k++;
-                p2++;
+                #pragma omp parallel for reduction(+:outputData[p])
+                for (int j = 0; j < nbNeuronsPrevLayer; j++) {
+                    outputData[p] += inputData[p2+j] * weightsData[k+j];
+                }
+
+                k += nbNeuronsPrevLayer;
+                p2 += nbNeuronsPrevLayer;
+                p++;
             }
-            p++;
         }
     }
 
@@ -214,8 +221,9 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
     int currentLayerOutputDim1 = currentCostDerivatives->getDimSize(1);
     int prevLayerOutputDim1 = prevLayerOutput->getDimSize(1);
 
-    int k=0;
+    #pragma omp parallel for
     for(int i=0; i<getNbNeurons(); i++) {
+        int k = i * getNbNeuronsPrevLayer();
         for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
             int m=j;
             // weightsData[k] = w_i,j

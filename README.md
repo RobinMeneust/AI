@@ -7,6 +7,7 @@ AI model from scratch in C++ for image classification (MNIST dataset)
 ## Install dependencies
 
 - OpenCV
+- OpenMP
 - Doxygen (only to generate the documentation)
 
 ## Build
@@ -40,7 +41,9 @@ Accuracy: **87 %**
 ## TODO
 
 1. Conv2D and Max-pooling layers *(IN PROGRESS)*
-2. Improve performance: add an option to use GPU with CUDA to increase the training speed. Use in the Tensor class the following code: https://developer.nvidia.com/blog/programming-tensor-cores-cuda-9/
+2. Improve performance: 
+   - GPU: add an option to use GPU with CUDA to increase the training speed. Use in the Tensor class the following code: https://developer.nvidia.com/blog/programming-tensor-cores-cuda-9/
+   - CPU: Add multithreading with OpenMP *(IN PROGRESS)* 
 3. Confusion matrix
 4. Accuracy graph
 5. More loss functions (categorical cross-entropy...)

@@ -32,6 +32,7 @@ Tensor::Tensor(const std::vector<int> &dimSizes) : nDim(dimSizes.size()), dimSiz
  * @param copy Tensor copied
  */
 Tensor::Tensor(Tensor const& copy) : Tensor(copy.getDimSizes()){
+    #pragma omp parallel for
     for(int i=0; i<copy.getSize(); i++) {
         data[i] = copy.data[i];
     }
@@ -44,6 +45,7 @@ Tensor::Tensor(Tensor const& copy) : Tensor(copy.getDimSizes()){
  * @param initData Data that will be copied in the tensor
  */
 Tensor::Tensor(const std::vector<int> &dimSizes, const float *initData) : Tensor(dimSizes) {
+    #pragma omp parallel for
     for(int i=0; i<getSize(); i++) {
         data[i] = initData[i];
     }

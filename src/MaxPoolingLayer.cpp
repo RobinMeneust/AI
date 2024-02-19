@@ -61,7 +61,7 @@ Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
         outputShapeWithBatch.push_back(outputShape[i]);
     }
     for(int i=0; i<inputShape.size(); i++) {
-        outputShapeWithBatch.push_back(outputShape[i]);
+        outputShapeWithBatch.push_back(inputShape[i]);
     }
 
     Tensor* derivatives = new Tensor(outputShapeWithBatch);
@@ -84,7 +84,7 @@ Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
     int paddingTopLeft = padding/2;
 
     for(int nOut=0; nOut<nb2DFrames*outputShapeWithBatch[0]; nOut++) {
-        // For each 2D inputs compute Max-pooling
+        // For each 2D outputs compute Max-pooling
         for(int yOut=0; yOut<=outputHeight; yOut++) {
             for(int xOut=0; xOut<=outputWidth; xOut++) {
                 // For each output element, compute the derivatives in respect to the previous layer elements

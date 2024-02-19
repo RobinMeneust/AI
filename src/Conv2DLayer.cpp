@@ -109,7 +109,7 @@ Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
 
     Tensor* inputWithPadding;
     if(padding != 0) {
-        inputWithPadding = MaxPoolingLayer::addPaddingToBatchData(input, padding); //TODO This function should be moved in a separate file
+        inputWithPadding = MaxPoolingLayer::addPaddingToBatchData(input, padding); //TODO This function should be moved to a separate file
     } else {
         inputWithPadding = (Tensor *) & input;
     }

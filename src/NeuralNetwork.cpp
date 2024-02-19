@@ -93,21 +93,25 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
     Tensor* preActivationDerivatives = layers->getLayer(layerIndex)->getPreActivationDerivatives(*outputsPrevLayer);
     float* preActivationDerivativesData = preActivationDerivatives->getData();
 
-    int p1=0;
-
+    #pragma omp parallel for
     for(int b=0; b<batchSize; b++) {
+        int p1 = b * prevLayerOutputSize;
         int p2Init = b*layerOutputSize;
-        for (int i = 0; i < prevLayerOutputSize; i++) {
-            int p2 = p2Init;
-            nextCostDerivativesData[p1] = 0.0f;
-            int p3 = i;
-            for (int k = 0; k < layerOutputSize; k++) {
-                // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
-                nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[p1];
-                p2++;
-                p3+= prevLayerOutputSize;
+        #pragma omp parallel firstprivate(p1)
+        {
+            #pragma for
+            for (int i = 0; i < prevLayerOutputSize; i++) {
+                int p2 = p2Init;
+                nextCostDerivativesData[p1] = 0.0f;
+                int p3 = i;
+                for (int k = 0; k < layerOutputSize; k++) {
+                    // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+                    nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[p1];
+                    p2++;
+                    p3 += prevLayerOutputSize;
+                }
+                p1++;
             }
-            p1++;
         }
     }
 
@@ -137,6 +141,7 @@ void NeuralNetwork::fit(const Batch &batch) {
         weightedSums[i] = layers->getLayer(i)->getPreActivationValues(*(outputs[i-1]));
         outputs[i] = layers->getLayer(i)->getActivationValues(*(weightedSums[i]));
     }
+
     // dC/da_k * da_k/dz_k
     Tensor* currentCostDerivatives = getCostDerivatives(*(outputs[getNbLayers()-1]), batch); // dC/da_k
     float* currentCostDerivativesData = currentCostDerivatives->getData();
@@ -147,6 +152,8 @@ void NeuralNetwork::fit(const Batch &batch) {
 
 
     float invSize = 1.0f/layers->getLayer(getNbLayers()-1)->getOutputSize(0);
+
+    #pragma omp parallel for
     for(int i=0; i<currentCostDerivatives->getSize(); i++) {
         currentCostDerivativesData[i] *= invSize * activationDerivativesData[i];
     }
@@ -191,12 +198,17 @@ Tensor* NeuralNetwork::getCostDerivatives(const Tensor &prediction, const Batch 
     Tensor* lossDerivative = new Tensor({batch.getSize(), outputSize});
     float* lossDerivativeData = lossDerivative->getData();
     float* predictionData = prediction.getData();
-    int k=0;
 
+    #pragma omp parallel for
     for(int b=0; b<batch.getSize(); b++) {
-        for(int i=0; i<outputSize; i++) {
-            lossDerivativeData[k] = predictionData[k] - batch.getTarget(b)[i];
-            k++;
+        int k = b * outputSize;
+        #pragma omp parallel firstprivate(k)
+        {
+            #pragma omp for
+            for (int i = 0; i < outputSize; i++) {
+                lossDerivativeData[k] = predictionData[k] - batch.getTarget(b)[i];
+                k++;
+            }
         }
     }
 

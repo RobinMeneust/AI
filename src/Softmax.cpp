@@ -17,6 +17,7 @@
  */
 float Softmax::getAbsMax(float* input, int size) {
     float max = input[0];
+    #pragma omp parallel for reduction(max:max)
     for(int i=1; i<size; i++) {
         float absVal = input[i] < 0 ? -input[i] : input[i];
         if(max < absVal) {
@@ -47,28 +48,34 @@ Tensor * Softmax::getValues(const Tensor &input, int batchSize) {
     }
 
     int instanceSize = input.getSize() / batchSize;
-    float* expTemp = new float[instanceSize];
-    int k=0;
 
+    #pragma omp parallel firstprivate(coordStart)
+    {
+        #pragma omp for
+        for (int b = 0; b < batchSize; b++) {
+            coordStart[0] = b;
+            float *dataInstance = input.getStart(coordStart);
+            float factor = 40.0f / getAbsMax(dataInstance, instanceSize);
+            float sumExp = 0.0f;
+            float* expTemp = new float[instanceSize];
 
-    for(int b=0; b<batchSize; b++) {
-        coordStart[0] = b;
-        float* dataInstance = input.getStart(coordStart);
-        float factor = 40.0f/getAbsMax(dataInstance, instanceSize);
-        float sumExp = 0.0f;
+            #pragma omp parallel for reduction(+:sumExp)
+            for (int i = 0; i < instanceSize; i++) {
+                expTemp[i] = exp(dataInstance[i] * factor);
+                sumExp += expTemp[i];
+            }
 
-        for(int i=0; i<instanceSize; i++) {
-            expTemp[i] = exp(dataInstance[i]*factor);
-            sumExp += expTemp[i];
-        }
+            int start = b * instanceSize;
 
-        for(int i=0; i<instanceSize; i++) {
-            outputData[k] = expTemp[i] / sumExp;
-            k++;
+            #pragma omp parallel for
+            for (int i = 0; i < instanceSize; i++) {
+                outputData[start + i] = expTemp[i] / sumExp;
+            }
+
+            delete[] expTemp;
         }
     }
 
-    delete[] expTemp;
     return output;
 }
 
@@ -83,6 +90,7 @@ Tensor* Softmax::getDerivatives(const Tensor &input, int batchSize) {
     Tensor* output = getValues(input, batchSize);
     float* outputData = output->getData();
 
+    #pragma omp parallel for
     for(int i=0; i<input.getSize(); i++) {
         outputData[i] *= (1-outputData[i]);
     }
