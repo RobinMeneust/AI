@@ -26,8 +26,9 @@ Tensor *FlattenLayer::getPreActivationDerivatives(const Tensor &input) {
     Tensor* output = new Tensor({getOutputSize(),getInputSize()});
     float* outputData = output->getData();
 
-    int k = 0;
+    #pragma omp parallel for
     for(int i=0; i<getOutputSize(); i++) {
+        int k = i * getInputSize();
         for(int j=0; j<getInputSize(); j++) {
             outputData[k] = i==j;
             k++;

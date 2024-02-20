@@ -115,6 +115,7 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
         }
     }
 
+    delete preActivationDerivatives;
     delete nextActivationDerivatives;
     return nextCostDerivatives;
 }

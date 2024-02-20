@@ -16,6 +16,7 @@ Conv2DLayer::Conv2DLayer(int nbKernels, const std::vector<int>& kernelDimSizes, 
 }
 
 void Conv2DLayer::changeInputShape(const std::vector<int> &newInputShape) {
+    //TODO: Change the name of this function (changeInputShape is inaccurate)
     std::vector<int> newOutputShape;
     if(newInputShape.size() == 2) {
         newOutputShape.push_back(nbKernels);
@@ -88,10 +89,125 @@ Tensor *Conv2DLayer::getOutput(const Tensor &input) {
 
 void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivatives, Tensor *prevLayerOutput) {
     //TODO
+    float* currentCostDerivativesData = currentCostDerivatives->getData();
+    float* prevLayerOutputData = prevLayerOutput->getData();
+
+    int batchSize = currentCostDerivatives->getDimSize(0);
+    int currentLayerOutputDim1 = currentCostDerivatives->getSize()/ batchSize;
+    int prevLayerOutputDim1 = prevLayerOutput->getSize() / batchSize;
+
+    int nb2DFramesOutput = getOutputSize(0);
+
+    int outputWidth = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(0);
+    int outputHeight = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
+
+    int inputWidth = getInputDim() == 3 ? getInputSize(1) : getInputSize(0);
+    int inputHeight = getInputDim() == 3 ? getInputSize(2) : getInputSize(1);
+
+    for (int k = 0; k < nb2DFramesOutput; k++) {
+        int correspondingInput2DFrame = k / nbKernels;
+        float *kernelData = kernels[k]->getData();
+        // For each 2D outputs
+        for (int yOut = 0; yOut <= outputHeight; yOut++) {
+            for (int xOut = 0; xOut <= outputWidth; xOut++) {
+                int p1 = k * yOut * outputWidth + xOut;
+                int p2 = 0;
+
+                int xStart = xOut * stride;
+                int yStart = yOut * stride;
+
+                for(int i=0; i<kernelDimSizes[1]; i++) {
+                    for(int j=0; j<kernelDimSizes[0]; j++) {
+                        if(xStart + j < inputWidth && yStart + i < inputHeight) {
+                            int p1Copy = p1;
+                            double delta = 0.02 * kernelData[p2]; // F_i = F_x,y
+                            int p3 = correspondingInput2DFrame * (yStart + i) * kernelDimSizes[0] + xStart + j;
+                            for (int b = 0; b < batchSize; b++) {
+                                delta += currentCostDerivativesData[p1Copy] * prevLayerOutputData[p3]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
+                                p1Copy += currentLayerOutputDim1;
+                                p3 += prevLayerOutputDim1;
+                            }
+                            delta /= (double) batchSize;
+                            kernelData[p2] = kernelData[p2] - learningRate * delta;
+                        }
+                        p2++;
+                    }
+                }
+            }
+        }
+    }
 }
 
 Tensor *Conv2DLayer::getPreActivationDerivatives(const Tensor &input) {
-    return nullptr; //TODO
+    if(input.getNDim() != getInputDim()+1) {
+        std::cerr << "ERROR: Invalid input (check the dimensions)" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    std::vector<int> outputShapeWithBatch = {input.getDimSize(0)};
+
+    // Here the output tensor is like a tensor of the same dimensions of the output of this layer where each of its component is a tensor with the same dimension of the input.
+    // So that we have dz/da for each "z" and "a" of the output of the layer and input of the layer
+    // The shape is: (batch size, nb 2D outputs, height of 2D outputs, width, nb 2D inputs, height of 2D inputs, width)
+
+    for(int i=0; i<outputShape.size(); i++) {
+        outputShapeWithBatch.push_back(outputShape[i]);
+    }
+    for(int i=0; i<inputShape.size(); i++) {
+        outputShapeWithBatch.push_back(inputShape[i]);
+    }
+
+    Tensor* derivatives = new Tensor(outputShapeWithBatch);
+    float* derivativesData = derivatives->getData();
+
+    int nb2DFramesInput = 1;
+    if(getInputDim() == 3) {
+        nb2DFramesInput = getInputSize(0);
+    }
+    int nb2DFramesOutput = getOutputSize(0);
+
+    int inputWidth = input.getNDim() == 3 ? input.getDimSize(1) : input.getDimSize(0);
+    int inputHeight = input.getNDim() == 3 ? input.getDimSize(2) : input.getDimSize(1);
+
+    inputWidth += padding;
+    inputHeight += padding;
+
+    int outputWidth = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(0);
+    int outputHeight = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
+
+    for(int b=0; b<outputShapeWithBatch[0]; b++) {
+        for(int k=0; k<nb2DFramesOutput; k++) {
+            float *kernelData = kernels[k]->getData();
+            // For each 2D outputs
+            for (int yOut = 0; yOut <= outputHeight; yOut++) {
+                for (int xOut = 0; xOut <= outputWidth; xOut++) {
+                    // For each output element, compute the derivatives in respect to the previous layer elements
+                    for (int nIn = 0; nIn < nb2DFramesInput * outputShapeWithBatch[0]; nIn++) {
+                        // For each 2D inputs
+                        int p = b * k * yOut * xOut * nIn * inputHeight * inputWidth; // TODO: it's not optimized
+
+                        int xStart = xOut * stride;
+                        int yStart = yOut * stride;
+                        int xEnd = xStart + kernelDimSizes[0];
+                        int yEnd = yStart + kernelDimSizes[1];
+
+                        for (int yIn = 0; yIn <= inputHeight; yIn++) {
+                            int p2 = (yIn-yOut) * inputWidth;
+                            for (int xIn = 0; xIn <= inputWidth; xIn++) {
+                                if (xIn >= xStart && xIn <= xEnd && yIn >= yStart && yIn <= yEnd) {
+                                    derivativesData[p] = kernelData[p2 + xIn - xOut];
+                                } else {
+                                    derivativesData[p] = 0;
+                                }
+                                p++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return derivatives;
 }
 
 Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {

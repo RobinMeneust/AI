@@ -221,7 +221,7 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
     int currentLayerOutputDim1 = currentCostDerivatives->getDimSize(1);
     int prevLayerOutputDim1 = prevLayerOutput->getDimSize(1);
 
-    #pragma omp parallel for
+//    #pragma omp parallel for
     for(int i=0; i<getNbNeurons(); i++) {
         int k = i * getNbNeuronsPrevLayer();
         for (int j = 0; j < getNbNeuronsPrevLayer(); j++) {
@@ -257,7 +257,7 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
  * @return Tensor of rank 2 containing all the weights weight w_i,j
  */
 Tensor *DenseLayer::getPreActivationDerivatives(const Tensor &input) {
-    return weights;
+    return new Tensor(*weights);
 }
 
 /**

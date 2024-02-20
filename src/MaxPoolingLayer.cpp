@@ -51,6 +51,10 @@ void MaxPoolingLayer::adjustParams(float learningRate, Tensor* currentCostDeriva
 
 
 Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
+    if(input.getNDim() != getInputDim()+1) {
+        std::cerr << "ERROR: Invalid input (check the dimensions)" << std::endl;
+        exit(EXIT_FAILURE);
+    }
     std::vector<int> outputShapeWithBatch = {input.getDimSize(0)};
 
     // Here the output tensor is like a tensor of the same dimensions of the output of this layer where each of its component is a tensor with the same dimension of the input.
@@ -68,9 +72,10 @@ Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
     float* derivativesData = derivatives->getData();
 
     int nb2DFrames = 1;
-    if(getOutputDim() == 4) {
-        nb2DFrames = getOutputSize(1);
+    if(getOutputDim() == 3) {
+        nb2DFrames = getOutputSize(0);
     }
+
 
     float* inputData = input.getData();
 
@@ -84,7 +89,7 @@ Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
     int paddingTopLeft = padding/2;
 
     for(int nOut=0; nOut<nb2DFrames*outputShapeWithBatch[0]; nOut++) {
-        // For each 2D outputs compute Max-pooling
+        // For each 2D outputs
         for(int yOut=0; yOut<=outputHeight; yOut++) {
             for(int xOut=0; xOut<=outputWidth; xOut++) {
                 // For each output element, compute the derivatives in respect to the previous layer elements
