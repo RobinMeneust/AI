@@ -238,8 +238,8 @@ void DenseLayer::adjustParams(float learningRate, Tensor* currentCostDerivatives
                 p += currentLayerOutputDim1;
                 m += prevLayerOutputDim1;
             }
-            deltaWeight /= (double) batchSize;
-            deltaBias /= (double) batchSize;
+            //deltaWeight /= (double) batchSize;
+            //deltaBias /= (double) batchSize;
 
             // Adjust the parameters
             float newWeightValue = weightsData[k] - learningRate * deltaWeight;

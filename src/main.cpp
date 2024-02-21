@@ -47,16 +47,17 @@ Mat loadImage(std::string filename) {
 
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork({28, 28});
-    network->addLayer(new Conv2DLayer(1, {3, 3}, 1, 2 , new LeakyRelu())); // 10 kernels of size 3x3 (output shape = (10x28x28)), stride 1, padding 2
-//    network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (10x14x14)), stride 2, padding 0
-//    network->addLayer(new Conv2DLayer(10, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels 3x3 (output shape = (100x14x14)), stride 1, padding 2
+    network->addLayer(new Conv2DLayer(4, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels of size 3x3 (output shape = (10x28x28)), stride 1, padding 2
+    network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (10x14x14)), stride 2, padding 0
+
+//    network->addLayer(new Conv2DLayer(3, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels 3x3 (output shape = (100x14x14)), stride 1, padding 2
 //    network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (100x7x7)), stride 2, padding 0
+
     network->addLayer(new FlattenLayer()); // (output shape = (100*7*7))
     network->addLayer(new DenseLayer(128, new LeakyRelu()));
     network->addLayer(new DenseLayer(64, new LeakyRelu()));
-//    network->addLayer(new DenseLayer(512, new LeakyRelu()));
     network->addLayer(new DenseLayer(10, new Softmax()));
-    network->setLearningRate(0.03f);
+    network->setLearningRate(0.001f);
 
     return network;
 }
@@ -237,6 +238,16 @@ int main()
         batches.clear();
     }
     std::cout << "training done" << std::endl;
+//
+//    Batch* batch = generateBatches(1, trainingSet)[0];
+//    std::cout << "Conv test" << std::endl;
+//    for(int i=0; i<10; i++) {
+//        if(batch->getTarget(0)[i] != 0) {
+//            std::cout << "Number " << i << std::endl;
+//            break;
+//        }
+//    }
+//    network->feedTest(batch);
 
 
     for(int i=0; i<trainingSet.size(); i++) {

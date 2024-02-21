@@ -79,19 +79,19 @@ Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
 
     float* inputData = input.getData();
 
-    int inputWidth = input.getNDim() == 3 ? input.getDimSize(1) : input.getDimSize(0);
-    int inputHeight = input.getNDim() == 3 ? input.getDimSize(2) : input.getDimSize(1);
+    int inputHeight = input.getNDim() == 4 ? input.getDimSize(2) : input.getDimSize(1);
+    int inputWidth = input.getNDim() == 4 ? input.getDimSize(3) : input.getDimSize(2);
 
-    int outputWidth = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(0);
-    int outputHeight = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
+    int outputHeight = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(0);
+    int outputWidth = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
 
     int p = 0;
     int paddingTopLeft = padding/2;
 
     for(int nOut=0; nOut<nb2DFrames*outputShapeWithBatch[0]; nOut++) {
         // For each 2D outputs
-        for(int yOut=0; yOut<=outputHeight; yOut++) {
-            for(int xOut=0; xOut<=outputWidth; xOut++) {
+        for(int yOut=0; yOut<outputHeight; yOut++) {
+            for(int xOut=0; xOut<outputWidth; xOut++) {
                 // For each output element, compute the derivatives in respect to the previous layer elements
 
                 // Get the x and y coordinate of the max input element associated to the current output element
@@ -104,9 +104,9 @@ Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
                 int y = yOut*stride - paddingTopLeft;
 
                 int pInput = x + inputWidth*y;
-                for(int yKernel=0; yKernel<kernelDimSizes[1]; yKernel++) {
+                for(int yKernel=0; yKernel<kernelDimSizes[0]; yKernel++) {
                     if(y>=0) {
-                        for (int xKernel = 0; xKernel < kernelDimSizes[0]; xKernel++) {
+                        for (int xKernel = 0; xKernel < kernelDimSizes[1]; xKernel++) {
                             if (x >= 0 && inputData[pInput] > max) {
                                 max = inputData[pInput];
                                 xArgmax = x;
@@ -121,8 +121,8 @@ Tensor *MaxPoolingLayer::getPreActivationDerivatives(const Tensor &input) {
                 }
 
                 for(int nIn=0; nIn<nb2DFrames; nIn++) {
-                    for (int yIn = 0; yIn <= inputHeight; yIn++) {
-                        for (int xIn = 0; xIn <= inputHeight; xIn++) {
+                    for (int yIn = 0; yIn < inputHeight; yIn++) {
+                        for (int xIn = 0; xIn < inputWidth; xIn++) {
                             derivativesData[p] = (xArgmax == yIn && yArgMax == xIn) ? 1 : 0;
                             p++;
                         }
@@ -162,11 +162,11 @@ Tensor *MaxPoolingLayer::getPreActivationValues(const Tensor &input) {
         nb2DInputs = getInputSize(1);
     }
 
-    int inputWidth = input.getNDim() == 3 ? inputWithPadding->getDimSize(1) : inputWithPadding->getDimSize(0);
-    int inputHeight = input.getNDim() == 3 ? inputWithPadding->getDimSize(2) : inputWithPadding->getDimSize(1);
+    int inputHeight = input.getNDim() == 4 ? inputWithPadding->getDimSize(2) : inputWithPadding->getDimSize(1);
+    int inputWidth = input.getNDim() == 4 ? inputWithPadding->getDimSize(3) : inputWithPadding->getDimSize(2);
 
-    int xUpperBound = floor(inputWidth-kernelDimSizes[0]);
-    int yUpperBound = floor(inputHeight-kernelDimSizes[1]);
+    int yUpperBound = floor(inputHeight-kernelDimSizes[0]);
+    int xUpperBound = floor(inputWidth-kernelDimSizes[1]);
 
     int remainderInput = inputWidth - xUpperBound - stride + (stride-1)*inputWidth;
 
@@ -181,9 +181,9 @@ Tensor *MaxPoolingLayer::getPreActivationValues(const Tensor &input) {
                 // Compute the max of the following elements
                 float max = inputData[pInput];
 
-                for(int k1=0; k1<kernelDimSizes[1]; k1++) {
+                for(int k1=0; k1<kernelDimSizes[0]; k1++) {
                     int p2 = pInput + k1*inputWidth;
-                    for(int k2=0; k2<kernelDimSizes[0]; k2++) {
+                    for(int k2=0; k2<kernelDimSizes[1]; k2++) {
                         if(max < inputData[p2]) {
                             max = inputData[p2];
                         }

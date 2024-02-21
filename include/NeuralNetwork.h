@@ -43,6 +43,8 @@ public:
     std::vector<int> predict(const Tensor &input);
     float getAccuracy(const Batch &batch);
     void save(const std::string& fileName);
+
+    void feedTest(Batch *pBatch);
 };
 
 #endif

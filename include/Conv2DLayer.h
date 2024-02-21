@@ -24,7 +24,7 @@ public:
     std::string toString();
     void changeInputShape(const std::vector<int> &newInputShape);
 
-    Tensor * createKernel();
+    Tensor * createKernel(int kernelId);
 };
 
 

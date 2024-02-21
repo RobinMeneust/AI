@@ -10,6 +10,9 @@
 #include <fstream>
 #include <chrono>
 #include <iomanip>
+#include <opencv2/core/hal/interface.h>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/highgui.hpp>
 
 /**
  * Default constructor for the neural network
@@ -311,3 +314,40 @@ void NeuralNetwork::save(const std::string& fileName) {
     out.flush();
     out.close();
 }
+
+//// TODO: delete this function
+//void NeuralNetwork::feedTest(Batch *pBatch) {
+//    Layer* l = layers->getLayer(0);
+//    Tensor* output = l->getOutput(*(pBatch->getData()));
+//    float* outputData = output->getData();
+//    float imgFloat[26*26];
+////    std::cout << "TEST " << output->getSize() << std::endl; // 3x26x26
+//    for(int i=0; i<3; i++) {
+//        int j = i*26*26;
+//        int k = 0;
+//        float max = outputData[0];
+//        float min = outputData[0];
+//        for(int y=0; y<26; y++) {
+//            for(int x=0; x<26; x++) {
+//                if(max < outputData[j]) max = outputData[j];
+//                if(min > outputData[j]) min = outputData[j];
+//                j++;
+//                k++;
+//            }
+//        }
+//
+//        j=i*26*26;
+//        k=0;
+//        for(int y=0; y<26; y++) {
+//            for(int x=0; x<26; x++) {
+//                imgFloat[k] = 255*(outputData[j]-min)/(max-min);
+//                std::cout << outputData[j] << " " << imgFloat[k] << std::endl;
+//                j++;
+//                k++;
+//            }
+//        }
+//        cv::Mat dummy_query = cv::Mat(26, 26, CV_32F, imgFloat);
+//        cv::imshow("test", dummy_query);
+//        cv::waitKey(0);
+//    }
+//}

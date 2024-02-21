@@ -29,8 +29,9 @@ void Conv2DLayer::changeInputShape(const std::vector<int> &newInputShape) {
     // width output = (number of iterations with i from 1 to (width input with padding) with a step of (stride) (i+=stride)) - (number of kernels that don't fit in the input matrix)
     //              = (width input with padding - width kernel + 1) / stride
 
-    int dim1 = (newInputShape[0]+padding-kernelDimSizes[0]+1)/stride;
-    int dim2 = (newInputShape[1]+padding-kernelDimSizes[1]+1)/stride;
+    int p = newInputShape.size() == 3 ? 1 : 0;
+    int dim1 = (newInputShape[p]+padding-kernelDimSizes[0]+1)/stride;
+    int dim2 = (newInputShape[p+1]+padding-kernelDimSizes[1]+1)/stride;
 
     newOutputShape.push_back(dim1);
     newOutputShape.push_back(dim2);
@@ -49,7 +50,7 @@ void Conv2DLayer::changeInputShape(const std::vector<int> &newInputShape) {
 
     // Create kernels
     for(int i=0; i<newOutputShape[0]; i++) {
-        kernels.push_back(createKernel());
+        kernels.push_back(createKernel(i));
     }
 }
 
@@ -60,7 +61,8 @@ Conv2DLayer::~Conv2DLayer() {
     kernels.clear();
 }
 
-Tensor * Conv2DLayer::createKernel() {
+//TODO: Remove kernelID since it's just for debug purposes (so that it's not random)
+Tensor * Conv2DLayer::createKernel(int kernelId) {
     Tensor* newKernel = new Tensor(kernelDimSizes);
     float* kernelData = newKernel->getData();
 
@@ -69,9 +71,10 @@ Tensor * Conv2DLayer::createKernel() {
     float lowerBound = -upperBound;
 
     // random generator
-    int seed = 5;
+    int seed = 123 + 27*kernelId;
     std::default_random_engine gen(seed);
     std::uniform_real_distribution<float> distribution(lowerBound,upperBound);
+    distribution(gen); // TODO: Check if there is another solution. Note: this line was added because the first "randomly" generated number was almost always the same
 
     for(int i=0; i<newKernel->getSize(); i++) {
         kernelData[i] = distribution(gen);
@@ -88,7 +91,6 @@ Tensor *Conv2DLayer::getOutput(const Tensor &input) {
 }
 
 void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivatives, Tensor *prevLayerOutput) {
-    //TODO
     float* currentCostDerivativesData = currentCostDerivatives->getData();
     float* prevLayerOutputData = prevLayerOutput->getData();
 
@@ -98,8 +100,8 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
 
     int nb2DFramesOutput = getOutputSize(0);
 
-    int outputWidth = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(0);
-    int outputHeight = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
+    int outputWidth = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
+    int outputHeight = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(2);
 
     int inputWidth = getInputDim() == 3 ? getInputSize(1) : getInputSize(0);
     int inputHeight = getInputDim() == 3 ? getInputSize(2) : getInputSize(1);
@@ -116,18 +118,18 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
                 int xStart = xOut * stride;
                 int yStart = yOut * stride;
 
-                for(int i=0; i<kernelDimSizes[1]; i++) {
-                    for(int j=0; j<kernelDimSizes[0]; j++) {
+                for(int i=0; i<kernelDimSizes[0]; i++) {
+                    for(int j=0; j<kernelDimSizes[1]; j++) {
                         if(xStart + j < inputWidth && yStart + i < inputHeight) {
                             int p1Copy = p1;
                             double delta = 0.02 * kernelData[p2]; // F_i = F_x,y
-                            int p3 = correspondingInput2DFrame * (yStart + i) * kernelDimSizes[0] + xStart + j;
+                            int p3 = correspondingInput2DFrame * (yStart + i) * kernelDimSizes[1] + xStart + j;
                             for (int b = 0; b < batchSize; b++) {
                                 delta += currentCostDerivativesData[p1Copy] * prevLayerOutputData[p3]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
                                 p1Copy += currentLayerOutputDim1;
                                 p3 += prevLayerOutputDim1;
                             }
-                            delta /= (double) batchSize;
+                            //delta /= (double) batchSize;
                             kernelData[p2] = kernelData[p2] - learningRate * delta;
                         }
                         p2++;
@@ -165,42 +167,56 @@ Tensor *Conv2DLayer::getPreActivationDerivatives(const Tensor &input) {
     }
     int nb2DFramesOutput = getOutputSize(0);
 
-    int inputWidth = input.getNDim() == 3 ? input.getDimSize(1) : input.getDimSize(0);
-    int inputHeight = input.getNDim() == 3 ? input.getDimSize(2) : input.getDimSize(1);
+    int inputHeight = input.getNDim() == 4 ? input.getDimSize(2) : input.getDimSize(1);
+    int inputWidth = input.getNDim() == 4 ? input.getDimSize(3) : input.getDimSize(2);
 
-    inputWidth += padding;
-    inputHeight += padding;
+    int outputWidth = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
+    int outputHeight = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(0);
 
-    int outputWidth = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(0);
-    int outputHeight = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
+    int paddingLeft = padding/2;
+    int p = 0;
 
     for(int b=0; b<outputShapeWithBatch[0]; b++) {
         for(int k=0; k<nb2DFramesOutput; k++) {
             float *kernelData = kernels[k]->getData();
             // For each 2D outputs
-            for (int yOut = 0; yOut <= outputHeight; yOut++) {
-                for (int xOut = 0; xOut <= outputWidth; xOut++) {
+            for (int yOut = 0; yOut < outputHeight; yOut++) {
+                for (int xOut = 0; xOut < outputWidth; xOut++) {
                     // For each output element, compute the derivatives in respect to the previous layer elements
-                    for (int nIn = 0; nIn < nb2DFramesInput * outputShapeWithBatch[0]; nIn++) {
+                    for (int nIn = 0; nIn < nb2DFramesInput; nIn++) {
                         // For each 2D inputs
-                        int p = b * k * yOut * xOut * nIn * inputHeight * inputWidth; // TODO: it's not optimized
 
-                        int xStart = xOut * stride;
-                        int yStart = yOut * stride;
-                        int xEnd = xStart + kernelDimSizes[0];
-                        int yEnd = yStart + kernelDimSizes[1];
+                        // Get the corresponding range of coordinates in the input from the output coordinates (the padding must be taken into account)
+                        int xStart = xOut * stride - paddingLeft;
+                        int yStart = yOut * stride - paddingLeft;
+                        int xEnd = xStart + kernelDimSizes[1];
+                        int yEnd = yStart + kernelDimSizes[0];
 
-                        for (int yIn = 0; yIn <= inputHeight; yIn++) {
-                            int p2 = (yIn-yOut) * inputWidth;
-                            for (int xIn = 0; xIn <= inputWidth; xIn++) {
-                                if (xIn >= xStart && xIn <= xEnd && yIn >= yStart && yIn <= yEnd) {
-                                    derivativesData[p] = kernelData[p2 + xIn - xOut];
-                                } else {
-                                    derivativesData[p] = 0;
-                                }
-                                p++;
+                        if(xStart<0) xStart=0;
+                        if(yStart<0) yStart=0;
+                        if(xEnd>inputWidth) xEnd=inputWidth;
+                        if(yEnd>inputWidth) yEnd=inputWidth;
+
+                        // Fill with zeros
+                        int pCopy = p;
+
+                        for (int i = 0; i < inputHeight*inputWidth; i++) {
+                            derivativesData[pCopy] = 0;
+                            pCopy++;
+                        }
+
+                        // Add non-null values
+                        int p3 = 0;
+                        for(int yK=yStart; yK<yEnd; yK++) {
+                            int p2 = p + inputWidth * yK + xStart;
+                            for (int xK = xStart; xK < xEnd; xK++) {
+                                derivativesData[p2] = kernelData[p3];
+                                p2++;
+                                p3++;
                             }
                         }
+
+                        p = pCopy;
                     }
                 }
             }
@@ -237,12 +253,13 @@ Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
         nb2DInputs = getInputSize(1);
     }
 
-    int inputWidth = input.getNDim() == 3 ? inputWithPadding->getDimSize(1) : inputWithPadding->getDimSize(0);
-    int inputHeight = input.getNDim() == 3 ? inputWithPadding->getDimSize(2) : inputWithPadding->getDimSize(1);
+    // if NDim == 4 then we have (batch, nb2DInputs, height, width)
+    int inputHeight = input.getNDim() == 4 ? inputWithPadding->getDimSize(2) : inputWithPadding->getDimSize(1);
+    int inputWidth = input.getNDim() == 4 ? inputWithPadding->getDimSize(3) : inputWithPadding->getDimSize(2);
 
-    int xUpperBound = inputWidth-kernelDimSizes[0];
+    int xUpperBound = inputWidth-kernelDimSizes[1];
     xUpperBound = (xUpperBound/stride) * stride;
-    int yUpperBound = inputHeight-kernelDimSizes[1];
+    int yUpperBound = inputHeight-kernelDimSizes[0];
     yUpperBound = (yUpperBound/stride) * stride;
 
     int remainderInput = inputWidth - xUpperBound - stride + (stride-1)*inputWidth;
@@ -262,9 +279,9 @@ Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
                         outputData[p] = 0;
 
                         int k3 = 0;
-                        for (int k1 = 0; k1 < kernelDimSizes[1]; k1++) {
+                        for (int k1 = 0; k1 < kernelDimSizes[0]; k1++) {
                             int p2 = pInput + k1 * inputWidth;
-                            for (int k2 = 0; k2 < kernelDimSizes[0]; k2++) {
+                            for (int k2 = 0; k2 < kernelDimSizes[1]; k2++) {
                                 outputData[p] += inputData[p2] * kernelData[k3];
                                 k3++;
                                 p2++;

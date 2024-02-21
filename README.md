@@ -47,6 +47,7 @@ Accuracy: **87 %**
 3. Confusion matrix
 4. Accuracy graph
 5. More loss functions (categorical cross-entropy...)
+6. Add Dropout layers
 
 ## Doc
 
