@@ -47,9 +47,9 @@ Mat loadImage(std::string filename) {
 
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork({28, 28});
-    network->addLayer(new Conv2DLayer(4, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels of size 3x3 (output shape = (10x28x28)), stride 1, padding 2
+    network->addLayer(new Conv2DLayer(2, {3, 3}, 1, 0, new LeakyRelu())); // 10 kernels of size 3x3 (output shape = (10x28x28)), stride 1, padding 2
     network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (10x14x14)), stride 2, padding 0
-
+//
 //    network->addLayer(new Conv2DLayer(3, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels 3x3 (output shape = (100x14x14)), stride 1, padding 2
 //    network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (100x7x7)), stride 2, padding 0
 
@@ -202,7 +202,6 @@ int main()
     std::vector<Instance*> testSet;
 
 
-
     std::cout << "Fetching and transforming data..." << std::endl;
     trainingSet = getDataset(false, expectedResult,300);
 
@@ -223,10 +222,13 @@ int main()
             exit(EXIT_FAILURE);
         }
 
+//        int b = 0;
         for(auto &batch : batches) {
+//            std::cout << "BATCH " << b << std::endl;
+//            b++;
             network->fit(*batch);
         }
-        std::string fileName = "log.txt";
+//        std::string fileName = "log.txt";
 //        network->save(fileName);
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start);
         std::cout << "epoch: " << epoch << " / " << nbEpochs << " accuracy: " << std::fixed << std::setprecision(2) << network->getAccuracy(*testBatch) << " took: " << duration.count() << "s" << std::endl;

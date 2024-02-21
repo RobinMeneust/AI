@@ -99,6 +99,7 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
     int prevLayerOutputDim1 = prevLayerOutput->getSize() / batchSize;
 
     int nb2DFramesOutput = getOutputSize(0);
+    int nb2DFramesInput = getInputDim() == 3 ? getInputSize(0) : 1;
 
     int outputWidth = getOutputDim() == 3 ? getOutputSize(2) : getOutputSize(1);
     int outputHeight = getOutputDim() == 3 ? getOutputSize(1) : getOutputSize(2);
@@ -106,31 +107,53 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
     int inputWidth = getInputDim() == 3 ? getInputSize(1) : getInputSize(0);
     int inputHeight = getInputDim() == 3 ? getInputSize(2) : getInputSize(1);
 
+    int inputSizeWithoutInput2DFrame = getInputSize() / nb2DFramesInput;
+
     for (int k = 0; k < nb2DFramesOutput; k++) {
         int correspondingInput2DFrame = k / nbKernels;
+        int p3 = correspondingInput2DFrame * inputSizeWithoutInput2DFrame;
         float *kernelData = kernels[k]->getData();
+
         // For each 2D outputs
-        for (int yOut = 0; yOut <= outputHeight; yOut++) {
-            for (int xOut = 0; xOut <= outputWidth; xOut++) {
-                int p1 = k * yOut * outputWidth + xOut;
+        int p11 = k * outputHeight * outputWidth;
+        for (int yOut = 0; yOut < outputHeight; yOut++) {
+            int p12 = p11 + yOut * outputWidth;
+            for (int xOut = 0; xOut < outputWidth; xOut++) {
+                int p13 = p12 + xOut;
                 int p2 = 0;
 
                 int xStart = xOut * stride;
                 int yStart = yOut * stride;
-
+                //TODO: padding here ???
                 for(int i=0; i<kernelDimSizes[0]; i++) {
                     for(int j=0; j<kernelDimSizes[1]; j++) {
                         if(xStart + j < inputWidth && yStart + i < inputHeight) {
-                            int p1Copy = p1;
+                            int p1Copy = p13;
                             double delta = 0.02 * kernelData[p2]; // F_i = F_x,y
-                            int p3 = correspondingInput2DFrame * (yStart + i) * kernelDimSizes[1] + xStart + j;
+//                            double delta = 0.0;
+                            int p4 = p3 + (yStart + i) * kernelDimSizes[1] + xStart + j;
                             for (int b = 0; b < batchSize; b++) {
-                                delta += currentCostDerivativesData[p1Copy] * prevLayerOutputData[p3]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
+                                delta += currentCostDerivativesData[p1Copy] * prevLayerOutputData[p4]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
+                                if(p1Copy>=currentCostDerivatives->getSize() || p4>=prevLayerOutput->getSize()) {
+                                    std::cerr << "index out of bounds" << std::endl;
+                                }
+                                if(std::isnan(delta)) {
+                                    std::cerr << "delta is nan" << std::endl;
+                                }
+                                if(delta>100 || delta<-100) { //TODO:Delete this
+                                    std::cerr << "Too large delta value" << std::endl;
+                                }
                                 p1Copy += currentLayerOutputDim1;
-                                p3 += prevLayerOutputDim1;
+                                p4 += prevLayerOutputDim1;
                             }
                             //delta /= (double) batchSize;
                             kernelData[p2] = kernelData[p2] - learningRate * delta;
+                            if(p2>=kernels[k]->getSize()) {
+                                std::cerr << "index out of bounds" << std::endl;
+                            }
+                            if(kernelData[p2]>10) {
+                                std::cerr << "Too large kernel value" << std::endl;
+                            }
                         }
                         p2++;
                     }
@@ -138,6 +161,19 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
             }
         }
     }
+
+//    for(int k=0; k<nbKernels; k++) {
+//        int p = 0;
+//        for(int y=0; y<kernelDimSizes[0]; y++) {
+//            for(int x=0; x<kernelDimSizes[1]; x++) {
+//                std::cout << kernels[k]->getData()[p] << " ";
+//                p++;
+//            }
+//            std::cout << std::endl;
+//        }
+//        std::cout << std::endl;
+//    }
+//    std::cout << "____" << std::endl << std::endl;
 }
 
 Tensor *Conv2DLayer::getPreActivationDerivatives(const Tensor &input) {
@@ -186,17 +222,6 @@ Tensor *Conv2DLayer::getPreActivationDerivatives(const Tensor &input) {
                     for (int nIn = 0; nIn < nb2DFramesInput; nIn++) {
                         // For each 2D inputs
 
-                        // Get the corresponding range of coordinates in the input from the output coordinates (the padding must be taken into account)
-                        int xStart = xOut * stride - paddingLeft;
-                        int yStart = yOut * stride - paddingLeft;
-                        int xEnd = xStart + kernelDimSizes[1];
-                        int yEnd = yStart + kernelDimSizes[0];
-
-                        if(xStart<0) xStart=0;
-                        if(yStart<0) yStart=0;
-                        if(xEnd>inputWidth) xEnd=inputWidth;
-                        if(yEnd>inputWidth) yEnd=inputWidth;
-
                         // Fill with zeros
                         int pCopy = p;
 
@@ -205,18 +230,46 @@ Tensor *Conv2DLayer::getPreActivationDerivatives(const Tensor &input) {
                             pCopy++;
                         }
 
-                        // Add non-null values
-                        int p3 = 0;
-                        for(int yK=yStart; yK<yEnd; yK++) {
-                            int p2 = p + inputWidth * yK + xStart;
-                            for (int xK = xStart; xK < xEnd; xK++) {
-                                derivativesData[p2] = kernelData[p3];
-                                p2++;
-                                p3++;
-                            }
-                        }
+                        // Get the corresponding range of coordinates in the input from the output coordinates (the padding must be taken into account)
+                        int xStart = xOut * stride - paddingLeft;
+                        int yStart = yOut * stride - paddingLeft;
+                        int xEnd = xStart + kernelDimSizes[1];
+                        int yEnd = yStart + kernelDimSizes[0];
 
-                        p = pCopy;
+                        if(xEnd>0 || yEnd>0) {
+                            int remainderLeft(0), remainderRight(0), remainderUp(0), remainderDown(0);
+
+                            if (xStart < 0) {
+                                remainderLeft = -xStart;
+                                xStart = 0;
+                            }
+                            if (yStart < 0) {
+                                remainderUp = -yStart;
+                                yStart = 0;
+                            }
+                            if (xEnd > inputWidth) {
+                                remainderRight = xEnd - inputWidth;
+                                xEnd = inputWidth;
+                            }
+                            if (yEnd > inputWidth) {
+                                yEnd = inputWidth;
+                            }
+
+                            int p3 = remainderUp * kernelDimSizes[0]; // Skip lines of the kernel that are associated to zeros (padding)
+
+                            // Add non-null values
+                            for (int yK = yStart; yK < yEnd; yK++) {
+                                int p2 = p + inputWidth * yK + xStart;
+                                p3 += remainderLeft;
+                                for (int xK = xStart; xK < xEnd; xK++) {
+                                    derivativesData[p2] = kernelData[p3];
+                                    p2++;
+                                    p3++;
+                                }
+                                p3+= remainderRight;
+                            }
+                            p = pCopy;
+                        }
                     }
                 }
             }
@@ -283,6 +336,9 @@ Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
                             int p2 = pInput + k1 * inputWidth;
                             for (int k2 = 0; k2 < kernelDimSizes[1]; k2++) {
                                 outputData[p] += inputData[p2] * kernelData[k3];
+                                if(p>=output->getSize() || p2>=input.getSize() || k3>=kernels[k]->getSize()) {
+                                    std::cerr << "index out of bounds" << std::endl;
+                                }
                                 k3++;
                                 p2++;
                             }

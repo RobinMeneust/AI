@@ -102,14 +102,21 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
         int p2Init = b*layerOutputSize;
         #pragma omp parallel firstprivate(p1)
         {
-            #pragma for
+            #pragma omp for
             for (int i = 0; i < prevLayerOutputSize; i++) {
                 int p2 = p2Init;
                 nextCostDerivativesData[p1] = 0.0f;
                 int p3 = i;
                 for (int k = 0; k < layerOutputSize; k++) {
                     // dC/da_k * da_k/dz_k * dz_k/da_i * da_i/dz_i
+                    //TODO: pre activation derivative seems way too large and current activation derivatives can be nan
                     nextCostDerivativesData[p1] += currentCostDerivativesData[p2] * preActivationDerivativesData[p3] * nextActivationDerivativesData[p1];
+                    if(std::isnan(nextCostDerivativesData[p1])) {
+                        std::cerr << "nextCostDerivativesData[p1] is nan" << std::endl;
+                    }
+                    if(nextCostDerivativesData[p1] > 100 || nextCostDerivativesData[p1] < -100) {//TODO: delete this
+                        std::cerr << "nextCostDerivativesData[p1] is too large" << std::endl;
+                    }
                     p2++;
                     p3 += prevLayerOutputSize;
                 }
@@ -160,6 +167,12 @@ void NeuralNetwork::fit(const Batch &batch) {
     #pragma omp parallel for
     for(int i=0; i<currentCostDerivatives->getSize(); i++) {
         currentCostDerivativesData[i] *= invSize * activationDerivativesData[i];
+        if(currentCostDerivativesData[i] > 100 || currentCostDerivativesData[i] < -100) {//TODO: delete this
+            std::cerr << "currentCostDerivativesData[i] is too large" << std::endl;
+        }
+        if(std::isnan(currentCostDerivativesData[i])) {//TODO: delete this
+            std::cerr << "currentCostDerivativesData[i] is nan" << std::endl;
+        }
     }
 
 
@@ -322,7 +335,7 @@ void NeuralNetwork::save(const std::string& fileName) {
 //    float* outputData = output->getData();
 //    float imgFloat[26*26];
 ////    std::cout << "TEST " << output->getSize() << std::endl; // 3x26x26
-//    for(int i=0; i<3; i++) {
+//    for(int i=0; i<layers->getLayer(0)->getOutputSize(0); i++) {
 //        int j = i*26*26;
 //        int k = 0;
 //        float max = outputData[0];
@@ -346,6 +359,7 @@ void NeuralNetwork::save(const std::string& fileName) {
 //                k++;
 //            }
 //        }
+//        std::cout << "________" << std::endl << std::endl;
 //        cv::Mat dummy_query = cv::Mat(26, 26, CV_32F, imgFloat);
 //        cv::imshow("test", dummy_query);
 //        cv::waitKey(0);
