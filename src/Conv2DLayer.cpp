@@ -129,8 +129,7 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
                     for(int j=0; j<kernelDimSizes[1]; j++) {
                         if(xStart + j < inputWidth && yStart + i < inputHeight) {
                             int p1Copy = p13;
-                            double delta = 0.02 * kernelData[p2]; // F_i = F_x,y
-//                            double delta = 0.0;
+                            double delta = 0.0;
                             int p4 = p3 + (yStart + i) * kernelDimSizes[1] + xStart + j;
                             for (int b = 0; b < batchSize; b++) {
                                 delta += currentCostDerivativesData[p1Copy] * prevLayerOutputData[p4]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
@@ -317,14 +316,15 @@ Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
 
     int remainderInput = inputWidth - xUpperBound - stride + (stride-1)*inputWidth;
 
+    int size2DInput = inputHeight * inputWidth;
 
     int p = 0;
 
     for(int b=0; b<outputShapeWithBatch[0]; b++) {
         for (int k = 0; k < nbKernels; k++) {
             float* kernelData = kernels[k]->getData();
-            int pInput = b*nb2DInputs;
-            for (int n = 0; n < nb2DInputs; n++) {
+            int pInput = b*nb2DInputs * size2DInput;
+           for (int n = 0; n < nb2DInputs; n++) {
                 // For each 2D inputs compute Max-pooling
                 for (int y = 0; y <= yUpperBound; y += stride) {
                     for (int x = 0; x <= xUpperBound; x += stride) {
@@ -346,6 +346,7 @@ Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
                         p++;
                         pInput += stride;
                     }
+                    //TODO: Missing y stride ??
                     pInput += remainderInput;
                 }
             }

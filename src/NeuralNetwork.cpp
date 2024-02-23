@@ -115,7 +115,7 @@ Tensor* NeuralNetwork::getNextCostDerivatives(Tensor* currentCostDerivatives, Te
                         std::cerr << "nextCostDerivativesData[p1] is nan" << std::endl;
                     }
                     if(nextCostDerivativesData[p1] > 100 || nextCostDerivativesData[p1] < -100) {//TODO: delete this
-                        std::cerr << "nextCostDerivativesData[p1] is too large" << std::endl;
+                        std::cerr << "nextCostDerivativesData[p1] is too large" << std::endl; //TODO: It seems to happen sometimes (not in debug mode). Check again.
                     }
                     p2++;
                     p3 += prevLayerOutputSize;

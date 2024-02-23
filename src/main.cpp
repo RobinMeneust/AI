@@ -203,7 +203,7 @@ int main()
 
 
     std::cout << "Fetching and transforming data..." << std::endl;
-    trainingSet = getDataset(false, expectedResult,300);
+    trainingSet = getDataset(false, expectedResult,500);
 
     testSet = getDataset(true, expectedResult, 50);
     Batch* testBatch = instancesListToBatch(testSet);
