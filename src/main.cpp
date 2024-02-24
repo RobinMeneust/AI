@@ -47,7 +47,7 @@ Mat loadImage(std::string filename) {
 
 NeuralNetwork* initNN() {
     NeuralNetwork* network = new NeuralNetwork({28, 28});
-    network->addLayer(new Conv2DLayer(2, {3, 3}, 1, 0, new LeakyRelu())); // 10 kernels of size 3x3 (output shape = (10x28x28)), stride 1, padding 2
+    network->addLayer(new Conv2DLayer(2, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels of size 3x3 (output shape = (10x28x28)), stride 1, padding 2
     network->addLayer(new MaxPoolingLayer({2, 2}, 2, 0)); // kernel 2x2 (output shape = (10x14x14)), stride 2, padding 0
 //
 //    network->addLayer(new Conv2DLayer(3, {3, 3}, 1, 2, new LeakyRelu())); // 10 kernels 3x3 (output shape = (100x14x14)), stride 1, padding 2
@@ -96,6 +96,7 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], 
 
     std::vector<String> filenames;
 
+//    #pragma omp parallel for
     for(int i=0; i<10; i++) {
         std::string fileNameStr = "../../samples";
         if(isTestSet)
@@ -104,10 +105,10 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], 
             fileNameStr.append("/train/");
         fileNameStr.append(1,i+'0');
         fileNameStr.append("/*.jpg");
+//        # pragma omp critical
         glob(fileNameStr, filenames);
 
         for(int j=0; j<filenames.size(); j++) {
-
             Mat image = loadImage(filenames[j]);
             Mat normalizedImage;
             cv::normalize(image, normalizedImage, 0, 1, cv::NORM_MINMAX);
@@ -116,6 +117,7 @@ std::vector<Instance*> getDataset(bool isTestSet, float expectedResult[10][10], 
             Instance* instance = new Instance(new Tensor({28,28}, flattenInput), expectedResult[i]);
             delete[] flattenInput;
 
+//            # pragma omp critical
             instances.push_back(instance);
             if(j>=maxNbInstancesPerClass)
                 break;

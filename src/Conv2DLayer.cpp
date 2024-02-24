@@ -109,6 +109,8 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
 
     int inputSizeWithoutInput2DFrame = getInputSize() / nb2DFramesInput;
 
+    int paddingLeft = padding/2;
+
     for (int k = 0; k < nb2DFramesOutput; k++) {
         int correspondingInput2DFrame = k / nbKernels;
         int p3 = correspondingInput2DFrame * inputSizeWithoutInput2DFrame;
@@ -122,39 +124,47 @@ void Conv2DLayer::adjustParams(float learningRate, Tensor *currentCostDerivative
                 int p13 = p12 + xOut;
                 int p2 = 0;
 
-                int xStart = xOut * stride;
-                int yStart = yOut * stride;
-                //TODO: padding here ???
-                for(int i=0; i<kernelDimSizes[0]; i++) {
-                    for(int j=0; j<kernelDimSizes[1]; j++) {
-                        if(xStart + j < inputWidth && yStart + i < inputHeight) {
-                            int p1Copy = p13;
-                            double delta = 0.0;
-                            int p4 = p3 + (yStart + i) * kernelDimSizes[1] + xStart + j;
-                            for (int b = 0; b < batchSize; b++) {
-                                delta += currentCostDerivativesData[p1Copy] * prevLayerOutputData[p4]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
-                                if(p1Copy>=currentCostDerivatives->getSize() || p4>=prevLayerOutput->getSize()) {
+
+                // Get the corresponding range of coordinates in the input from the output coordinates (the padding must be taken into account)
+                int xStart = xOut * stride - paddingLeft;
+                int yStart = yOut * stride - paddingLeft;
+                int xEnd = xStart + kernelDimSizes[1];
+                int yEnd = yStart + kernelDimSizes[0];
+
+                if(xEnd>0 || yEnd>0) {
+                    for (int i = 0; i < kernelDimSizes[0]; i++) {
+                        for (int j = 0; j < kernelDimSizes[1]; j++) {
+                            int x = xStart + j;
+                            int y = yStart + i;
+                            if (x < inputWidth && x>=0 && y < inputHeight && y>=0) {
+                                int p1Copy = p13;
+                                double delta = 0.0;
+                                int p4 = p3 + (yStart + i) * kernelDimSizes[1] + xStart + j;
+                                for (int b = 0; b < batchSize; b++) {
+                                    delta += currentCostDerivativesData[p1Copy] * prevLayerOutputData[p4]; // delta = dC/da_k * da_k/dz_k * dz_k/dw_i,j
+                                    if (p1Copy >= currentCostDerivatives->getSize() || p4 >= prevLayerOutput->getSize()) {
+                                        std::cerr << "index out of bounds" << std::endl;
+                                    }
+                                    if (std::isnan(delta)) {
+                                        std::cerr << "delta is nan" << std::endl;
+                                    }
+                                    if (delta > 100 || delta < -100) { //TODO:Delete this
+                                        std::cerr << "Too large delta value" << std::endl;
+                                    }
+                                    p1Copy += currentLayerOutputDim1;
+                                    p4 += prevLayerOutputDim1;
+                                }
+                                //delta /= (double) batchSize;
+                                kernelData[p2] = kernelData[p2] - learningRate * delta;
+                                if (p2 >= kernels[k]->getSize()) {
                                     std::cerr << "index out of bounds" << std::endl;
                                 }
-                                if(std::isnan(delta)) {
-                                    std::cerr << "delta is nan" << std::endl;
+                                if (kernelData[p2] > 10) {
+                                    std::cerr << "Too large kernel value" << std::endl;
                                 }
-                                if(delta>100 || delta<-100) { //TODO:Delete this
-                                    std::cerr << "Too large delta value" << std::endl;
-                                }
-                                p1Copy += currentLayerOutputDim1;
-                                p4 += prevLayerOutputDim1;
                             }
-                            //delta /= (double) batchSize;
-                            kernelData[p2] = kernelData[p2] - learningRate * delta;
-                            if(p2>=kernels[k]->getSize()) {
-                                std::cerr << "index out of bounds" << std::endl;
-                            }
-                            if(kernelData[p2]>10) {
-                                std::cerr << "Too large kernel value" << std::endl;
-                            }
+                            p2++;
                         }
-                        p2++;
                     }
                 }
             }
@@ -336,7 +346,7 @@ Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
                             int p2 = pInput + k1 * inputWidth;
                             for (int k2 = 0; k2 < kernelDimSizes[1]; k2++) {
                                 outputData[p] += inputData[p2] * kernelData[k3];
-                                if(p>=output->getSize() || p2>=input.getSize() || k3>=kernels[k]->getSize()) {
+                                if(p>=output->getSize() || p2>=inputWithPadding->getSize() || k3>=kernels[k]->getSize()) {
                                     std::cerr << "index out of bounds" << std::endl;
                                 }
                                 k3++;
@@ -346,7 +356,6 @@ Tensor *Conv2DLayer::getPreActivationValues(const Tensor &input) {
                         p++;
                         pInput += stride;
                     }
-                    //TODO: Missing y stride ??
                     pInput += remainderInput;
                 }
             }
